@@ -1,0 +1,488 @@
+/* ---------- Global responsive foundation ---------- */
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	-webkit-text-size-adjust: 100%;
+	text-size-adjust: 100%;
+}
+
+body {
+	padding: 8px;
+	margin: 0 0 auto;
+	max-width: 100%;
+	overflow-x: hidden;
+	word-wrap: break-word;
+	overflow-wrap: break-word;
+}
+
+img,
+video,
+iframe {
+	max-width: 100%;
+	height: auto;
+}
+
+blockquote blockquote {
+	margin-left: 0;
+}
+
+form {
+	margin-bottom: 0;
+}
+
+hr {
+	clear: both;
+	border: 0 none;
+	height: 1px;
+}
+
+/* ---------- Post area ---------- */
+.postarea {
+	text-align: center;
+}
+
+.postarea table {
+	margin: 0 auto;
+	text-align: left;
+	max-width: 100%;
+}
+
+.postblock {
+	vertical-align: top;
+	padding: 3px;
+}
+
+.aa {
+	white-space: pre;
+	text-align: left;
+	font-family: IPAMonaPGothic, Mona, 'MS PGothic', YOzFontAA97 !important;
+	overflow-x: auto;
+	max-width: 100%;
+}
+
+/* ---------- Thumbnails ---------- */
+.thumb {
+	border: none;
+	float: left;
+	margin: 4px 20px;
+	max-width: 100%;
+	height: auto;
+}
+
+.nothumb {
+	float: left;
+	background: #eee;
+	border: 2px dashed #aaa;
+	text-align: center;
+	margin: 2px 20px;
+	padding: 1em 0.5em;
+	max-width: 100%;
+}
+
+/* ---------- Messages ---------- */
+.message {
+	margin: 1em 25px;
+	word-wrap: break-word;
+	overflow-wrap: break-word;
+}
+
+.reply .message {
+	margin-bottom: 5px;
+}
+
+.reflink a {
+	color: inherit;
+	text-decoration: none;
+}
+
+.reflink a:hover {
+	color: #800000;
+}
+
+.reply .filesize {
+	margin-left: 20px;
+}
+
+/* ---------- Hover post ---------- */
+.hoverpost {
+	display: block;
+	clear: both;
+	padding: 5px;
+	border: 1px solid rgba(0, 0, 0, .15);
+	border-right-color: rgba(0, 0, 0, .5);
+	border-bottom-color: rgba(0, 0, 0, .5);
+	max-width: 100%;
+}
+
+/* ---------- Spoilers ---------- */
+.spoiler {
+	text-decoration: none;
+	color: transparent;
+	text-shadow: 0 0 10px #000000;
+}
+
+.spoiler:hover {
+	color: inherit;
+	text-shadow: none;
+}
+
+/* ---------- Moderation / admin ---------- */
+.userdelete {
+	float: right;
+	text-align: center;
+	white-space: nowrap;
+}
+
+.doubledash {
+	vertical-align: top;
+	clear: both;
+	float: left;
+	font-size: 1.75em;
+}
+
+.moderator {
+	color: #FF0000;
+}
+
+.managebutton {
+	font-size: 15px;
+	height: 28px;
+	margin: 0.2em;
+}
+
+.banmessage {
+	color: red;
+	font-weight: bold;
+}
+
+/* ---------- Footer / rules ---------- */
+.footer {
+	clear: both;
+	text-align: center;
+}
+
+.rules {
+	padding-left: 5px;
+}
+
+.rules ul {
+	margin: 0;
+	padding-left: 0;
+}
+
+/* ---------- Floating posts ---------- */
+.floatpost {
+	float: right;
+	clear: both;
+	max-width: 100%;
+}
+
+/* ---------- Catalog ---------- */
+.catalogpost {
+	display: inline-block;
+	vertical-align: top;
+	overflow: hidden;
+	white-space: nowrap;
+	text-align: center;
+	text-overflow: ellipsis;
+	min-width: 100px;
+	max-width: 100%;
+	padding: 0 3px 3px;
+}
+
+/* ---------- Login / admin bar ---------- */
+.login {
+	text-align: center;
+}
+
+.adminbar {
+	text-align: right;
+	clear: both;
+	float: right;
+	max-width: 100%;
+}
+
+.adminbar a:link,
+.adminbar a:visited,
+.adminbar a:active,
+.adminbar a:hover {
+	text-decoration: none;
+}
+
+#switchStylesheet {
+	margin-left: 5px;
+}
+
+#newreplies {
+	margin: 5px 0 0 2px;
+	font-weight: bold;
+}
+
+/* ---------- BBCode rendering ---------- */
+.bbscroll {
+	max-height: 200px;
+	overflow-y: auto;
+	overflow-x: auto;
+	border: 1px solid #ccc;
+	padding: 4px 8px;
+	margin: 4px 0;
+	background: rgba(0, 0, 0, 0.03);
+	max-width: 100%;
+	-webkit-overflow-scrolling: touch;
+}
+
+.bbcquote {
+	border-left: 3px solid #999;
+	margin: 4px 0 4px 8px;
+	padding: 2px 8px;
+	color: #555;
+	word-wrap: break-word;
+	overflow-wrap: break-word;
+}
+
+/* ---------- Board switcher ---------- */
+#switchBoard {
+	margin-left: 5px;
+}
+
+/* ---------- Board header ---------- */
+.logo .boardslug,
+.logo .boardtitle,
+.logo .boarddesc,
+div.logo span.boardslug,
+div.logo span.boardtitle,
+div.logo div.boarddesc {
+	color: #800000 !important;
+	opacity: 1 !important;
+	filter: none !important;
+}
+
+/* ---------- Board bar ---------- */
+.boardbar {
+	font-size: 0.9em;
+	flex-wrap: wrap;
+}
+
+.boardbar a.current {
+	font-weight: bold;
+}
+
+/* ---------- Poll ---------- */
+.poll {
+	margin: 10px 0;
+	padding: 8px;
+	border: 1px solid #d9bfb7;
+	background: #f0e0d6;
+	max-width: 100%;
+}
+
+.pollquestion {
+	font-weight: bold;
+	margin-bottom: 6px;
+}
+
+.polloption {
+	margin: 2px 0;
+}
+
+.pollmeta {
+	font-size: 0.85em;
+	margin-top: 6px;
+	color: #666;
+}
+
+/* ---------- Text colors ---------- */
+.unkfunc,
+.greentext {
+	color: #789922;
+}
+
+.orangetext {
+	color: #e08a00;
+}
+
+.bluetext {
+	color: #3b7dd8;
+}
+
+/* ============================================================
+   MEDIA QUERIES
+   ============================================================ */
+
+@media (max-width: 768px) {
+	.message {
+		margin: 1em 15px;
+	}
+
+	.thumb {
+		margin: 4px 12px;
+	}
+
+	.nothumb {
+		margin: 2px 12px;
+	}
+
+	.doubledash {
+		font-size: 1.4em;
+	}
+
+	.adminbar {
+		float: none;
+		text-align: center;
+		margin-bottom: 5px;
+	}
+
+	.boardbar {
+		display: flex;
+		justify-content: center;
+	}
+}
+
+@media (max-width: 480px) {
+	body {
+		padding: 4px;
+	}
+
+	.message {
+		margin: 0.75em 8px;
+	}
+
+	.reply .message {
+		margin-left: 8px;
+		margin-right: 8px;
+	}
+
+	.thumb {
+		float: none;
+		display: block;
+		margin: 6px auto;
+		max-width: 100%;
+	}
+
+	.nothumb {
+		float: none;
+		display: block;
+		margin: 6px auto;
+	}
+
+	.postblock {
+		padding: 2px;
+		font-size: 0.9em;
+	}
+
+	.doubledash {
+		font-size: 1.1em;
+	}
+
+	.userdelete {
+		float: none;
+		display: block;
+		text-align: center;
+		margin-top: 4px;
+	}
+
+	.floatpost {
+		float: none;
+		width: 100%;
+	}
+
+	.adminbar {
+		float: none;
+		text-align: center;
+		font-size: 0.85em;
+	}
+
+	.managebutton {
+		font-size: 13px;
+		height: 24px;
+	}
+
+	.catalogpost {
+		min-width: 80px;
+		font-size: 0.85em;
+	}
+
+	.bbscroll {
+		max-height: 150px;
+		padding: 3px 5px;
+	}
+
+	.bbcquote {
+		margin-left: 3px;
+		padding: 2px 5px;
+	}
+
+	.poll {
+		padding: 6px;
+	}
+
+	.postarea table,
+	.postarea table tbody,
+	.postarea table tr,
+	.postarea table td {
+		display: block;
+		width: 100%;
+	}
+
+	.postblock {
+		display: block;
+		text-align: left;
+	}
+}
+
+@media (max-width: 320px) {
+	.message {
+		margin: 0.5em 4px;
+	}
+
+	.catalogpost {
+		min-width: 60px;
+		font-size: 0.8em;
+	}
+
+	.adminbar {
+		font-size: 0.75em;
+	}
+}
+
+@media (max-height: 480px) and (orientation: landscape) {
+	.thumb {
+		max-height: 150px;
+		width: auto;
+	}
+
+	.bbscroll {
+		max-height: 120px;
+	}
+}
+
+@media (min-width: 1400px) {
+	.message {
+		max-width: 1200px;
+	}
+}
+
+@media (hover: none) {
+	.spoiler {
+		color: inherit;
+		text-shadow: none;
+	}
+
+	.reflink a:hover {
+		color: inherit;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	* {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}
+

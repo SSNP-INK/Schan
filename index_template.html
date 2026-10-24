@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kchan</title>
+    <style>
+        body {
+            background-color: #eef2f5;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .logo-container {
+            margin-bottom: 20px;
+        }
+        .logo-container img {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+        }
+        .main-container {
+            display: flex;
+            gap: 10px;
+            width: 800px;
+            max-width: 100%;
+        }
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .left-col { width: 55%; }
+        .right-col { width: 45%; }
+        
+        .box {
+            border: 1px solid #000;
+            background-color: #d3d3d3;
+        }
+        .box-header {
+            background-color: #c0c0c0;
+            padding: 5px 10px;
+            font-weight: bold;
+            font-size: 1.2em;
+            border-bottom: 1px solid #000;
+        }
+        .box-content {
+            padding: 10px;
+        }
+        
+        /* Boards Section */
+        .boards-grid {
+            display: flex;
+            gap: 40px;
+        }
+        .boards-list {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .boards-list a {
+            color: #e08a00;
+            text-decoration: underline;
+            font-size: 0.9em;
+        }
+        .boards-list .header-link {
+            color: #000;
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        
+        /* Recent Images */
+        .recent-images {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            background-color: #c0c0c0;
+            padding: 5px;
+        }
+        .recent-images img {
+            width: 100%;
+            display: block;
+            border: 1px solid #000;
+        }
+
+        /* Latest Posts */
+        .latest-posts {
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        .latest-posts a {
+            color: #789922;
+            text-decoration: underline;
+        }
+        .latest-posts .board-name {
+            color: #000;
+            text-decoration: none;
+        }
+
+        /* Stats */
+        .stats {
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="logo-container">
+        <!-- Replace with your actual logo path -->
+        <img src="static/logo.png" alt="K Logo">
+    </div>
+
+    <div class="main-container">
+        <!-- Left Column -->
+        <div class="column left-col">
+            <div class="box">
+                <div class="box-header">Boards</div>
+                <div class="box-content">
+                    <div class="boards-grid">
+                        <div class="boards-list">
+                            <a href="index.html" class="header-link">TheKuzzy.win</a>
+                            <a href="#">Internet Celebrities</a>
+                            <a href="#">coals</a>
+                            <a href="#">The 'uzzy</a>
+                            <a href="#">Soyjak</a>
+                        </div>
+                        <div class="boards-list">
+                            <a href="#" class="header-link">Important 'n</a>
+                            <a href="#">shiiiiieeeett</a>
+                            <a href="#">booru</a>
+                            <a href="#">Telegram</a>
+                            <a href="#">Rules</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="box">
+                <div class="box-header">Recent Images</div>
+                <div class="box-content">
+                    <div class="recent-images">
+                        <img src="static/thumb1.jpg" alt="recent 1">
+                        <img src="static/thumb2.jpg" alt="recent 2">
+                        <img src="static/thumb3.jpg" alt="recent 3">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="column right-col">
+            <div class="box">
+                <div class="box-header">Latest Posts</div>
+                <div class="box-content latest-posts">
+                    <div><a href="#" class="board-name">Soyjak</a>: <a href="#">&gt;&gt;1205 People who haven't don...</a></div>
+                    <div><a href="#" class="board-name">Soyjak</a>: <a href="#">when we stop getting an EXPONE...</a></div>
+                    <div><a href="#" class="board-name">Soyjak</a>: <a href="#">&gt;&gt;changing stuff in the setting...</a></div>
+                    <div><a href="#" class="board-name">Soyjak</a>: <a href="#">Alright, which one of us was t...</a></div>
+                    <div><a href="#" class="board-name">Soyjak</a>: <a href="#">I was wondering which foid was...</a></div>
+                    <div><a href="#" class="board-name">Soyjak</a>: <a href="#">poonie poon...</a></div>
+                    <div><a href="#" class="board-name">Soyjak</a>: <a href="#">I turned on quick replies and ...</a></div>
+                    <div><a href="#" class="board-name">Soyjak</a>: <a href="#">&gt;&gt;1156 I posted this in like ...</a></div>
+                    <div><a href="#" class="board-name">Soyjak</a>: <a href="#">shitdoka fagica...</a></div>
+                    <div><a href="#" class="board-name">Soyjak</a>: <a href="#">&gt;&gt;1219 he age regressed befor...</a></div>
+                    <div><a href="#" class="board-name">Soyjak</a>: <a href="#">Kolyma world revolution when...</a></div>
+                    <div><a href="#" class="board-name">Soyjak</a>: <a href="#">&gt;&gt;1221 STRAGGOT IMAGE...</a></div>
+                    <div><a href="#" class="board-name">Soyjak</a>: <a href="#">Froge...</a></div>
+                    <div><a href="#" class="board-name">Soyjak</a>: <a href="#">on /f/ but youre not invited G...</a></div>
+                    <div><a href="#" class="board-name">Soyjak</a>: <a href="#">where is all the gay bbc cuck ...</a></div>
+                </div>
+            </div>
+
+            <div class="box">
+                <div class="box-header">Stats</div>
+                <div class="box-content stats">
+                    Total posts: 1322<br>
+                    Unique posters: 176<br>
+                    Active content: 284.53MB
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        - Kchan -
+    </div>
+
+</body>
+</html>
