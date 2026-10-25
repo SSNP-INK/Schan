@@ -339,9 +339,8 @@ list($account, $loggedin, $isadmin) = manageCheckLogIn(false);
 
 // board scope: super admins can open any board's manage panel, other accounts only their own
 if ($loggedin) {
-	$acc_board = isset($account['board']) && $account['board'] !== '' ? $account['board'] : '*';
 	$is_super = isset($account['role']) && $account['role'] == SCHAN_SUPER_ADMINISTRATOR;
-	if (!$is_super && $acc_board !== '*' && $active_board !== '' && $acc_board !== $active_board) {
+	if (!$is_super && $active_board !== '' && !accountCanBoard($account, $active_board)) {
 		$loggedin = false;
 		$isadmin = false;
 		$account = array();
@@ -349,15 +348,14 @@ if ($loggedin) {
 }
 
 // janitors only get the manage panel, on public pages (posting, deleting) they're regular visitors
-if ($loggedin && function_exists('roleIsJanitor') && roleIsJanitor($account) && !isset($_GET['manage']) && !defined('SCHAN_MODVIEW')) {
+if ($loggedin && function_exists('roleIsJanitor') && roleIsJanitor($account) && !isset($_GET['manage']) && !defined('SCHAN_MODVIEW') && empty($_POST['staffpost'])) {
 	$loggedin = false;
 	$isadmin = false;
 }
 
 // moderated board view: staff not logged in (or with only the posting role) get the login form
 // or the staff post form at the same address
-if (defined('SCHAN_MODVIEW') && !isset($_GET['manage'])
-	&& (!$loggedin || (function_exists('roleIsFake') && roleIsFake($account)))) {
+if (defined('SCHAN_MODVIEW') && !isset($_GET['manage']) && !$loggedin) {
 	$_GET['manage'] = '';
 }
 
@@ -424,7 +422,7 @@ if (!isset($_GET['delete']) && !isset($_GET['manage']) && (isset($_POST['name'])
 		$hide_fields = boardApplyFeatureOverrides($hide_fields, $active_board);
 	}
 
-	if ($post['parent'] != SCHAN_NEWTHREAD && (!$loggedin || (function_exists('roleIsFake') && roleIsFake($account)))) {
+	if ($post['parent'] != SCHAN_NEWTHREAD && (!$loggedin || (function_exists('roleIsFake') && roleIsFake($account)) || (function_exists('roleIsJanitor') && roleIsJanitor($account)))) {
 		$parent = postByID($post['parent']);
 		if (!isset($parent['locked'])) {
 			fancyDie(__('Invalid parent thread ID supplied, unable to create post.'));
@@ -464,12 +462,13 @@ if (!isset($_GET['delete']) && !isset($_GET['manage']) && (isset($_POST['name'])
 		$post['email'] = cleanString(str_replace('"', '&quot;', $post['email']));
 	}
 	if ($staffpost) {
-		$custom_capcode = function_exists('roleCustomCapcode') ? roleCustomCapcode($account) : null;
-	}
-	if ($staffpost && $custom_capcode !== null) {
-		$capcode = $custom_capcode;
-	} else if ($staffpost) {
-		$capcode = ($isadmin) ? ' <span style="color: ' . $schan_capcodes[0][1] . ' ;">## ' . $schan_capcodes[0][0] . '</span>' : ' <span style="color: ' . $schan_capcodes[1][1] . ';">## ' . $schan_capcodes[1][0] . '</span>';
+		// the capcode comes from the poster's role, configured in roles.php (no dropdown in the form)
+		$role_capcode = function_exists('roleCustomCapcode') ? roleCustomCapcode($account) : null;
+		if ($role_capcode !== null) {
+			$capcode = $role_capcode;
+		} else {
+			$capcode = ($isadmin) ? ' <span style="color: ' . $schan_capcodes[0][1] . ' ;">## ' . $schan_capcodes[0][0] . '</span>' : ' <span style="color: ' . $schan_capcodes[1][1] . ';">## ' . $schan_capcodes[1][0] . '</span>';
+		}
 	}
 	if ($staffpost || !in_array('subject', $hide_fields)) {
 		$post['subject'] = $_POST['subject'];
@@ -480,7 +479,7 @@ if (!isset($_GET['delete']) && !isset($_GET['manage']) && (isset($_POST['name'])
 	}
 	if ($staffpost || !in_array('message', $hide_fields)) {
 		$post['message'] = $_POST['message'];
-		if ($staffpost && isset($_POST['raw']) && !(function_exists('roleIsFake') && roleIsFake($account))) {
+		if ($staffpost && isset($_POST['raw']) && !(function_exists('roleIsFake') && roleIsFake($account)) && !(function_exists('roleIsJanitor') && roleIsJanitor($account))) {
 			// Treat message as raw HTML
 		} else {
 			if (SCHAN_WORDBREAK > 0) {
@@ -1004,7 +1003,7 @@ EOF;
 } elseif (defined('SCHAN_MODVIEW') && !isset($_GET['manage'])) {
 	$redirect = false;
 	$mod_self = modBoardURL($active_board, isset($_GET['mpage']) ? intval($_GET['mpage']) : 0, isset($_GET['mthread']) ? intval($_GET['mthread']) : 0);
-	if (!$loggedin || (function_exists('roleIsFake') && roleIsFake($account))) {
+	if (!$loggedin) {
 		die('--&gt; --&gt; --&gt;<meta http-equiv="refresh" content="0;url=' . $mod_self . '?login">');
 	}
 	if (function_exists('roleGate')) {
@@ -1044,15 +1043,21 @@ EOF;
 	list($account, $loggedin, $isadmin) = manageCheckLogIn(true);
 
 	if ($loggedin) {
-		$acc_board = isset($account['board']) && $account['board'] !== '' ? $account['board'] : '*';
 		$is_super = isset($account['role']) && $account['role'] == SCHAN_SUPER_ADMINISTRATOR;
-		if (!$is_super && $acc_board !== '*' && $active_board !== '' && $acc_board !== $active_board) {
-			fancyDie(sprintf(__('Access denied. Your account is bound to board "%s".'), htmlentities($acc_board)));
+		if (!$is_super && $active_board !== '' && !accountCanBoard($account, $active_board)) {
+			fancyDie(sprintf(__('Access denied. Your account is bound to board "%s".'), htmlentities(implode(', ', accountBoardList($account)))));
 		}
 	}
 
 	if ($loggedin && function_exists('roleGate')) {
 		roleGate($account);
+	}
+
+	if ($loggedin && function_exists('manageCsrfGuard')) {
+		// Every GET-triggered moderation action (approve, delete, sticky,
+		// lock, ban lift, and so on) is checked here, once, before any of
+		// them run.
+		manageCsrfGuard();
 	}
 
 	if ($loggedin) {
@@ -1129,7 +1134,7 @@ EOF;
 			} else if (isset($_GET['modlog'])) {
 				$text .= manageModerationLog($_GET['modlog']);
 			} else if (isset($_GET['pending'])) {
-				if (!$isadmin || (function_exists('roleIsJanitor') && roleIsJanitor($account))) {
+				if (!$isadmin) {
 					fancyDie(__('Access denied'));
 				}
 				$text .= managePendingPage();
@@ -1232,20 +1237,39 @@ EOF;
 					if ($a['role'] != SCHAN_SUPER_ADMINISTRATOR && $a['role'] != SCHAN_ADMINISTRATOR && $a['role'] != SCHAN_MODERATOR && $a['role'] != SCHAN_DISABLED && $a['role'] != SCHAN_JANITOR && $a['role'] != SCHAN_FAKE) {
 						fancyDie(__('Invalid role.'));
 					}
-					$posted_board = '';
-					if (isset($_POST['account_board'])) {
-						$posted_board = trim($_POST['account_board']);
+					// boards: "All boards" checkbox, or a list of board checkboxes (stored comma separated)
+					$all_boards = !empty($_POST['account_board_all']);
+					$posted_boards = array();
+					if (isset($_POST['account_boards']) && is_array($_POST['account_boards'])) {
+						$candidates = $_POST['account_boards'];
+					} else if (isset($_POST['account_board'])) {
+						$candidates = array($_POST['account_board']);
 					} else if (isset($_POST['board'])) {
-						$posted_board = trim($_POST['board']);
+						$candidates = array($_POST['board']);
+					} else {
+						$candidates = array();
+						$all_boards = true;
 					}
-					if ($posted_board === '') {
-						$posted_board = '*';
-					}
-					$a['board'] = $posted_board;
-					if ($a['board'] !== '*') {
-						if (!preg_match('/^[a-z0-9_-]{1,64}$/', $a['board']) || !boardBySlug($a['board'])) {
-							fancyDie(__('Invalid board.'));
+					foreach ($candidates as $pb) {
+						$pb = trim((string)$pb);
+						if ($pb === '*') {
+							$all_boards = true;
+						} else if ($pb !== '' && !in_array($pb, $posted_boards, true)) {
+							$posted_boards[] = $pb;
 						}
+					}
+					if ($all_boards || $a['role'] == SCHAN_SUPER_ADMINISTRATOR) {
+						$a['board'] = '*';
+					} else {
+						if (!$posted_boards) {
+							fancyDie(__('Choose at least one board.'));
+						}
+						foreach ($posted_boards as $pb) {
+							if (!preg_match('/^[a-z0-9_-]{1,64}$/', $pb) || !boardBySlug($pb)) {
+								fancyDie(__('Invalid board.'));
+							}
+						}
+						$a['board'] = implode(',', $posted_boards);
 					}
 
 					if ($id == 0) {
@@ -1886,7 +1910,7 @@ EOF;
 				$text .= manageInfo(sprintf($use_placeholder ? __('Deleted the file of post No.%d; deleted.png is shown in its place.') : __('Deleted the file of post No.%d.'), $post['id']));
 			}
 		} elseif (isset($_GET['spoiler'])) {
-			if ((function_exists('roleIsJanitor') && roleIsJanitor($account)) || (function_exists('roleIsFake') && roleIsFake($account))) {
+			if (function_exists('roleIsFake') && roleIsFake($account)) {
 				fancyDie(__('You do not have permission to do that.'));
 			}
 			$post = postByID(intval($_GET['spoiler']));
@@ -1908,6 +1932,11 @@ EOF;
 				threadUpdated($post['parent'] == SCHAN_NEWTHREAD ? $post['id'] : $post['parent']);
 				manageLogAction(sprintf($make_spoiler ? __('Spoilered the file of %s') : __('Removed the spoiler from the file of %s'), '&gt;&gt;' . $post['id']));
 				$text .= manageInfo(sprintf($make_spoiler ? __('The file of post No.%d is now spoilered.') : __('The file of post No.%d is no longer spoilered.'), $post['id']));
+			}
+		} elseif (isset($_GET['pending']) && function_exists('roleIsJanitor') && roleIsJanitor($account)) {
+			// janitors have no admin block, so they get the approval queue here
+			if (function_exists('managePendingPage')) {
+				$text .= managePendingPage();
 			}
 		} elseif (isset($_GET['approve'])) {
 			if ($_GET['approve'] > 0) {
@@ -2096,8 +2125,7 @@ EOF;
 			$text .= manageChangePasswordForm();
 		}
 
-		if (isset($_GET['pendingreturn']) && $isadmin && !isset($_GET['pending']) && function_exists('managePendingPage')
-			&& !(function_exists('roleIsJanitor') && roleIsJanitor($account))) {
+		if (isset($_GET['pendingreturn']) && ($isadmin || (function_exists('roleIsJanitor') && roleIsJanitor($account))) && !isset($_GET['pending']) && function_exists('managePendingPage')) {
 			$text .= managePendingPage();
 		}
 
@@ -2114,10 +2142,7 @@ EOF;
 		}
 
 		if ($text == '') {
-			if (function_exists('roleIsFake') && roleIsFake($account)) {
-				$onload = manageOnLoad('staffpost');
-				$text = buildPostForm(0, true, $active_board);
-			} elseif (!$redirect) {
+			if (!$redirect) {
 				$GLOBALS['schan_manage_dashboard'] = true;
 				$text = manageDashboard();
 			}

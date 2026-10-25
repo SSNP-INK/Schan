@@ -96,7 +96,8 @@ function hoverPreviewJS($render_board) {
 	var st = document.createElement('style');
 	st.textContent = '.schan-pv{position:fixed;z-index:100000;display:block;pointer-events:none;user-select:none;-webkit-user-select:none;box-sizing:border-box;max-width:min(75vw,900px);'
 		+ 'padding:6px 8px;margin:0;overflow:hidden;border:1px solid rgba(128,128,128,.7);box-shadow:0 2px 12px rgba(0,0,0,.55);}'
-		+ '.schan-pv .message{display:block}.schan-pv img.thumb{max-width:100%}';
+		+ '.schan-pv .message{display:block}.schan-pv img.thumb{max-width:100%}'
+		+ '.schan-hl{box-shadow:inset 0 0 0 9999px rgba(232,165,0,.18) !important;}';
 	document.head.appendChild(st);
 
 	function transparent(c) { return !c || c === 'transparent' || /,\s*0\)$/.test(c); }
@@ -254,11 +255,20 @@ function hoverPreviewJS($render_board) {
 		scanTimer = setTimeout(scan, ms);
 	}
 
-	// only one box at a time
-	var current = null;
+	// only one box (or highlight) at a time
+	var current = null, hl = null, hlOwner = null;
 	function hide() {
 		if (current && current.parentNode) { current.parentNode.removeChild(current); }
 		current = null;
+		if (hl) { hl.className = hl.className.replace(/(^|\s)schan-hl(?=\s|$)/g, ''); }
+		hl = hlOwner = null;
+	}
+
+	// true if enough of the post is on screen to see a highlight
+	function inView(el) {
+		var r = el.getBoundingClientRect(), vh = window.innerHeight || document.documentElement.clientHeight;
+		var visible = Math.min(r.bottom, vh) - Math.max(r.top, 0);
+		return visible > 0 && visible >= Math.min(r.height, vh * 0.5);
 	}
 
 	function show(a, info) {
@@ -284,8 +294,16 @@ function hoverPreviewJS($render_board) {
 		var a = t.closest('a');
 		var info = a ? parse(a) : null;
 		if (!info) { hide(); return; }
-		if (current && current.owner === a) { return; }
+		if ((current && current.owner === a) || hlOwner === a) { return; }
 		hide();
+		// target is already visible on the page -> just highlight it
+		var local = findLocal(info);
+		if (local && inView(local)) {
+			hl = local;
+			hlOwner = a;
+			local.className += ' schan-hl';
+			return;
+		}
 		show(a, info);
 	});
 	document.addEventListener('mouseout', function (e) {

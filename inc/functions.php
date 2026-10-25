@@ -535,6 +535,57 @@ function manageCheckLogIn($requireKey) {
 	return array($account, $loggedin, $isadmin);
 }
 
+// CSRF protection for the manage panel's GET-triggered moderation actions
+// (approve, delete, sticky, lock, ban lift, and so on). Those actions are
+// plain links rather than form submissions, so they can't use a hidden form
+// field; instead every such link carries this session-bound token as a
+// query parameter, and manageCsrfGuard() checks it before any of those
+// actions run. A link an attacker plants elsewhere never has a valid token,
+// because the token lives in the staff member's session, not in the URL
+// pattern itself.
+function manageCsrfToken() {
+	if (empty($_SESSION['schan_modtoken'])) {
+		$_SESSION['schan_modtoken'] = function_exists('random_bytes') ? bin2hex(random_bytes(16)) : md5(uniqid(mt_rand(), true));
+	}
+	return $_SESSION['schan_modtoken'];
+}
+
+// Appends the token to a manage-panel link. $sep is '?' for a URL with no
+// query string yet, '&amp;' (the HTML-escaped form) otherwise.
+function manageCsrfAppendToURL($url, $sep = '&amp;') {
+	return $url . $sep . 'csrf=' . manageCsrfToken();
+}
+
+// The parameter names that trigger a moderation action straight from a GET
+// request. Checked as a set: if the request carries any one of them, a
+// matching token is required.
+function manageCsrfProtectedKeys() {
+	return array(
+		'lift', 'approve', 'approvemedia', 'approvelinks', 'delete',
+		'deletefile', 'spoiler', 'trustip', 'clearreports', 'sticky', 'lock',
+		'rebuildall', 'global',
+	);
+}
+
+// Called once, right after a staff member is confirmed logged in and before
+// any manage-panel action runs.
+function manageCsrfGuard() {
+	$hit = false;
+	foreach (manageCsrfProtectedKeys() as $key) {
+		if (isset($_GET[$key])) {
+			$hit = true;
+			break;
+		}
+	}
+	if (!$hit) {
+		return;
+	}
+	$given = isset($_GET['csrf']) && is_string($_GET['csrf']) ? $_GET['csrf'] : '';
+	if (!hash_equals(manageCsrfToken(), $given)) {
+		fancyDie(__('That link has expired, or was not opened from inside the panel. Go back and try again.'));
+	}
+}
+
 function manageLogAction($action) {
 	global $account;
 	$account_id = 0;

@@ -16,7 +16,7 @@ function adminBar() {
 	}
 
 	if (function_exists('roleIsFake') && roleIsFake($account)) {
-		return '[<a href="?' . $bq . '">' . __('Post') . '</a>] &middot; [<a href="?' . $bq . '&changepassword">' . __('Change Password') . '</a>] [<a href="?logout">' . __('Log Out') . '</a>] &middot; ' . $return;
+		return '[<a href="?' . $bq . '&dashboard">' . __('Dashboard') . '</a>] [<a href="?' . $bq . '&staffpost">' . __('Post') . '</a>] &middot; [<a href="?' . $bq . '&changepassword">' . __('Change Password') . '</a>] [<a href="?logout">' . __('Log Out') . '</a>] &middot; ' . $return;
 	}
 
 	// dashboard has all the links, every other manage page gets a Return button
@@ -25,9 +25,6 @@ function adminBar() {
 	}
 
 	$output = manageReturnButton();
-	if (current_board() !== '') {
-		$output .= ' [<a href="' . htmlentities(modBoardURL(current_board()), ENT_QUOTES) . '">' . __('Moderate Board') . '</a>]';
-	}
 
 	if ($isadmin && $account['role'] == SCHAN_SUPER_ADMINISTRATOR && function_exists('allBoards') && isset($_GET['staffpost'])) {
 		$boards = allBoards();
@@ -43,7 +40,8 @@ function adminBar() {
 		}
 	}
 
-	$output .= ' &middot; [<a href="' . $returnlink . '" style="text-decoration: underline;">' . __('Back to board') . '</a>]';
+	$back = current_board() !== '' ? htmlentities(modBoardURL(current_board()), ENT_QUOTES) : $returnlink;
+	$output .= ' &middot; [<a href="' . $back . '" style="text-decoration: underline;">' . __('Back to board') . '</a>]';
 	return $output;
 }
 
@@ -54,6 +52,30 @@ function manageReturnButton() {
 }
 
 // dashboard, every manage page grouped
+// accounts keep their boards in the board column: '*' (all) or slugs separated by commas, e.g. 'b,g,v'
+function accountBoardList($account) {
+	$raw = isset($account['board']) ? trim((string)$account['board']) : '';
+	if ($raw === '' || $raw === '*') {
+		return array('*');
+	}
+	$out = array();
+	foreach (explode(',', $raw) as $slug) {
+		$slug = trim($slug);
+		if ($slug === '*') {
+			return array('*');
+		}
+		if ($slug !== '' && !in_array($slug, $out, true)) {
+			$out[] = $slug;
+		}
+	}
+	return $out ? $out : array('*');
+}
+
+function accountCanBoard($account, $slug) {
+	$list = accountBoardList($account);
+	return $list[0] === '*' || in_array($slug, $list, true);
+}
+
 function manageDashboard() {
 	global $account, $isadmin;
 
@@ -61,13 +83,12 @@ function manageDashboard() {
 		return htmlentities((string) $s, ENT_QUOTES);
 	};
 	$is_super = isset($account['role']) && $account['role'] == SCHAN_SUPER_ADMINISTRATOR;
-	$acc_board = (isset($account['board']) && $account['board'] !== '') ? $account['board'] : '*';
 	$current = current_board();
 	$bq = 'board=' . urlencode($current);
 
 	$boards = array();
 	foreach (allBoards() as $b) {
-		if ($is_super || $acc_board === '*' || $acc_board === $b['slug']) {
+		if ($is_super || accountCanBoard($account, $b['slug'])) {
 			$boards[] = $b;
 		}
 	}
@@ -95,16 +116,14 @@ function manageDashboard() {
 	foreach ($boards as $b) {
 		$slug = $b['slug'];
 		$sq = 'board=' . urlencode($slug);
-		$out .= '<li><a href="' . $e(installRootURL() . '/' . rawurlencode($slug) . '/') . '">/' . $e($slug) . '/</a>'
+		$out .= '<li><a href="' . $e(modBoardURL($slug)) . '">/' . $e($slug) . '/</a>'
 			. ($b['title'] !== '' ? ' - ' . $e($b['title']) : '')
 			. (!empty($b['locked']) ? ' <small>(' . __('locked') . ')</small>' : '');
 		$links = array();
-		$links[] = '<a href="' . $e(modBoardURL($slug)) . '">' . __('moderate') . '</a>';
 		if ($isadmin) {
 			if ($is_super) {
 				$links[] = '<a href="?' . $sq . '&boards=' . intval($b['id']) . '">' . __('edit') . '</a>';
 			}
-			$links[] = '<a href="?' . $sq . '&pages">' . __('pages') . '</a>';
 			$links[] = '<a href="?' . $sq . '&bans">' . __('bans') . '</a>';
 			if (SCHAN_REPORT) {
 				$links[] = '<a href="?' . $sq . '&reports">' . __('reports') . ' (' . intval($reports[$slug]) . ')</a>';
@@ -146,16 +165,21 @@ function manageDashboard() {
 		if (function_exists('manageEmojiPage') && extensionEnabled('emoji')) {
 			$items[] = '<a href="?' . $bq . '&emoji">' . __('Emoji') . '</a>';
 		}
-		$items[] = '<a href="?' . $bq . '&rebuildall">' . __('Rebuild') . '</a>';
+		$items[] = '<a href="' . (function_exists('manageCsrfAppendToURL') ? manageCsrfAppendToURL('?' . $bq . '&rebuildall', '&') : '?' . $bq . '&rebuildall') . '">' . __('Rebuild') . '</a>';
 		if ($is_super) {
 			$items[] = '<a href="?' . $bq . '&extensions">' . __('Extensions') . '</a>';
 			$items[] = '<a href="?' . $bq . '&config">' . __('Configuration') . '</a>';
-			$items[] = '<a href="?' . $bq . '&import">' . __('Import a vichan / Schan database') . '</a>';
+			$items[] = '<a href="?' . $bq . '&import">' . __('Import a vichan / Tinyib database') . '</a>';
 			if (SCHAN_DBMIGRATE) {
 				$items[] = '<a href="?' . $bq . '&dbmigrate"><b>' . __('Migrate Database') . '</b></a>';
 			}
 		}
 		$out .= '<fieldset><legend>' . __('Administration') . '</legend><ul><li>' . implode('</li><li>', $items) . '</li></ul></fieldset><br>';
+	}
+
+	// janitors: approval queue
+	if (!$isadmin && function_exists('roleIsJanitor') && roleIsJanitor($account) && function_exists('pendingCount') && extensionEnabled('pending')) {
+		$out .= '<fieldset><legend>' . __('Moderation') . '</legend><ul><li><a href="?' . $bq . '&pending">' . __('Pending approval') . ' (' . pendingCount() . ')</a></li></ul></fieldset><br>';
 	}
 
 	// search
@@ -399,6 +423,9 @@ function manageTextLink($params, $label, $disabled = false) {
 		$url .= $sep . rawurlencode($k) . '=' . rawurlencode($v);
 		$sep = '&amp;';
 	}
+	if (function_exists('manageCsrfAppendToURL')) {
+		$url = manageCsrfAppendToURL($url, $sep);
+	}
 	return '<a href="' . $url . '" class="managebtn" style="margin:0 6px 0 0;text-decoration:none;">' . htmlentities($text) . '</a>';
 }
 
@@ -481,10 +508,32 @@ function manageInlineModeration($post) {
 	$btn = function ($params, $label, $disabled = false) use ($post_board) {
 		return manageTextLink(array_merge(array('board' => $post_board), $params), $label, $disabled);
 	};
+	if (function_exists('roleIsFake') && roleIsFake(isset($GLOBALS['account']) ? $GLOBALS['account'] : array())) {
+		return '';
+	}
 	$out = '<div class="inlinemod" style="margin:4px 0 8px 0;">';
 
 	if (function_exists('roleIsJanitor') && roleIsJanitor(isset($GLOBALS['account']) ? $GLOBALS['account'] : array())) {
-		if ($post['file'] != '' || (function_exists('mediaExtrasFor') && !empty(mediaExtrasFor($post_board, $id)))) {
+		if (isset($post['moderated']) && $post['moderated'] == 0) {
+			$out .= $btn(array('approve' => $id), 'APPROVE');
+			$out .= $btn(array('delete' => $id), 'REJECT');
+		}
+		if (function_exists('pendingGet')) {
+			$pend = pendingGet($id);
+			if (!empty($pend['media'])) {
+				$out .= $btn(array('approvemedia' => $id), 'APPROVE MEDIA');
+			}
+			if (!empty($pend['links'])) {
+				$out .= $btn(array('approvelinks' => $id), 'APPROVE LINKS');
+			}
+		}
+		$out .= $btn(array('delete' => $id), 'D');
+		if ($post['file'] != '') {
+			$out .= $btn(array('deletefile' => $id), 'F');
+			if (function_exists('spoilerIs') && function_exists('spoilerSet')) {
+				$out .= $btn(array('spoiler' => $id, 'setspoiler' => 1), 'S');
+			}
+		} else if (function_exists('mediaExtrasFor') && !empty(mediaExtrasFor($post_board, $id))) {
 			$out .= $btn(array('deletefile' => $id), 'F');
 		}
 		return $out . '</div>';
@@ -617,6 +666,12 @@ EOF;
 // pending media / links / posts from all boards, approve or reject
 function managePendingPage() {
 	$posts = function_exists('pendingPostsAllBoards') ? pendingPostsAllBoards(100) : array();
+	$pend_acc = isset($GLOBALS['account']) ? $GLOBALS['account'] : array();
+	if (!(isset($pend_acc['role']) && $pend_acc['role'] == SCHAN_SUPER_ADMINISTRATOR)) {
+		$posts = array_values(array_filter($posts, function ($p) use ($pend_acc) {
+			return accountCanBoard($pend_acc, $p['board']);
+		}));
+	}
 	$e = function ($v) {
 		return htmlentities((string) $v, ENT_QUOTES);
 	};
@@ -633,6 +688,9 @@ function managePendingPage() {
 			foreach ($params as $k => $v) {
 				$url .= $sep . rawurlencode($k) . '=' . rawurlencode($v);
 				$sep = '&amp;';
+			}
+			if (function_exists('manageCsrfAppendToURL')) {
+				$url = manageCsrfAppendToURL($url, $sep);
 			}
 			return '<a href="' . $url . '" class="managebtn" style="margin:0 6px 0 0;text-decoration:none;"'
 				. ($confirm !== '' ? ' onclick="return confirm(\'' . $confirm . '\');"' : '') . '>[' . $label . ']</a>';
@@ -716,6 +774,8 @@ function manageAccountForm($id = 0) {
 			$a['board'] = '*';
 		}
 	}
+	$chosen = accountBoardList($a);
+	$all_chosen = ($chosen[0] === '*');
 
 	$a['id'] = htmlentities($a['id'], ENT_QUOTES);
 	$a['username'] = htmlentities($a['username'], ENT_QUOTES);
@@ -743,15 +803,16 @@ EOF;
 	$return .= '<option value="99" ' . ($a['role'] == 99 ? ' selected' : '') . '>' . __('Disabled') . '</option>';
 	$return .= '</select></td></tr>';
 
-	$return .= '<tr><td><label for="account_board">' . $txt_board . '</label></td><td><select name="account_board" id="account_board">';
-	$return .= '<option value="*"' . ($a['board'] === '*' ? ' selected' : '') . '>' . __('All boards') . '</option>';
+	$return .= '<tr><td style="vertical-align:top;">' . $txt_board . '</td><td id="accountBoards">';
+	$return .= '<label><input type="checkbox" name="account_board_all" id="account_board_all" value="1"' . ($all_chosen ? ' checked' : '') . '> <b>' . __('All boards') . '</b></label><br>';
 	if (function_exists('allBoards')) {
 		foreach (allBoards() as $b) {
-			$sel = ($a['board'] === $b['slug']) ? ' selected' : '';
-			$return .= '<option value="' . htmlentities($b['slug'], ENT_QUOTES) . '"' . $sel . '>' . htmlentities($b['slug']) . '</option>';
+			$on = !$all_chosen && in_array($b['slug'], $chosen, true);
+			$return .= '<label style="display:inline-block;margin-right:10px;"><input type="checkbox" name="account_boards[]" class="account_board_one" value="' . htmlentities($b['slug'], ENT_QUOTES) . '"' . ($on ? ' checked' : '') . ($all_chosen ? ' disabled' : '') . '> /' . htmlentities($b['slug']) . '/</label>';
 		}
 	}
-	$return .= '</select></td></tr>';
+	$return .= '</td></tr>';
+	$return .= '<script type="text/javascript">(function(){var all=document.getElementById("account_board_all");if(!all){return;}var one=document.querySelectorAll(".account_board_one");function sync(){for(var i=0;i<one.length;i++){one[i].disabled=all.checked;if(all.checked){one[i].checked=false;}}}all.addEventListener("change",sync);})();</script>';
 	$txt_submit = __('Submit');
 	$return .= <<<EOF
 	<tr><td>&nbsp;</td><td><input type="submit" value="$txt_submit" class="managebutton"></td></tr>
@@ -790,8 +851,8 @@ function manageAccountsTable() {
 					$text .= __('Disabled');
 					break;
 			}
-			$board = isset($account['board']) && $account['board'] !== '' && $account['board'] !== null ? $account['board'] : '*';
-			$text .= '</td><td>' . ($board === '*' ? __('All') : htmlentities($board)) . '</td><td>' . $lastactive . '</td><td><a href="?accounts=' . $account['id'] . '">' . __('update') . '</a></td></tr>';
+			$board_list = accountBoardList($account);
+			$text .= '</td><td>' . ($board_list[0] === '*' ? __('All') : htmlentities(implode(', ', $board_list))) . '</td><td>' . $lastactive . '</td><td><a href="?accounts=' . $account['id'] . '">' . __('update') . '</a></td></tr>';
 		}
 		$text .= '</table>';
 	}
@@ -861,7 +922,7 @@ function manageBansTable() {
 				$appeal_html = '&nbsp;';
 			}
 			$ip_cell = ipDisplayHTML($ban['ip']) . (function_exists('manageCountryTag') ? manageCountryTag($ban['ip']) : '');
-			$text .= '<tr><td>' . $ip_cell . '</td><td>' . ($board === '*' ? __('All') : htmlentities($board)) . '</td><td>' . formatDate($ban['timestamp']) . '</td><td>' . $expire . '</td><td>' . $reason . '</td><td>' . $appeal_html . '</td><td><a href="?bans&lift=' . $ban['id'] . '">' . __('lift') . '</a></td></tr>';
+			$text .= '<tr><td>' . $ip_cell . '</td><td>' . ($board === '*' ? __('All') : htmlentities($board)) . '</td><td>' . formatDate($ban['timestamp']) . '</td><td>' . $expire . '</td><td>' . $reason . '</td><td>' . $appeal_html . '</td><td><a href="' . (function_exists('manageCsrfAppendToURL') ? manageCsrfAppendToURL('?bans&lift=' . $ban['id'], '&') : '?bans&lift=' . $ban['id']) . '">' . __('lift') . '</a></td></tr>';
 		}
 		$text .= '</table>';
 	}
@@ -1026,6 +1087,22 @@ function modRenderPage($board, $thread_id = 0, $page = 0) {
 		}
 		$html = buildPage($htmlposts, 0, $pages, $page, 0, $board);
 		$base = installRootURL() . '/' . rawurlencode($board) . '/';
+	}
+
+	// Janitor / Fake accounts: make sure the staff post form is on the page
+	$mod_acc = isset($GLOBALS['account']) ? $GLOBALS['account'] : array();
+	if (((function_exists('roleIsJanitor') && roleIsJanitor($mod_acc)) || (function_exists('roleIsFake') && roleIsFake($mod_acc))) && strpos($html, 'name="staffpost"') === false) {
+		$staff_form = buildPostForm($thread_id, true, $board);
+		$n = 0;
+		$html = preg_replace_callback('#<div class="postarea">\s*<form\b[^>]*name="postform".*?</form>\s*</div>#is', function ($m) use ($staff_form) {
+			return $staff_form;
+		}, $html, 1, $n);
+		if ($n === 0) {
+			// no public form on this page at all, put it above the posts
+			$html = preg_replace_callback('#<form\b[^>]*(?:name|id)="delform"#i', function ($m) use ($staff_form) {
+				return $staff_form . $m[0];
+			}, $html, 1, $n);
+		}
 	}
 
 	// base href so images/scripts/forms load from the public page, nav stays in the mod view

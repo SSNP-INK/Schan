@@ -1,0 +1,86 @@
+/* VIPPER-style theme (adapted from pseud0ch/kareha) */
+html { padding: 0; margin: 0; }
+body { padding: 8px; margin: 0; }
+body.mainpage { background: #C5AD99; color: #000080; }
+
+a { color: #0000FF; }
+a:visited { color: #660099; }
+a:hover { color: #FF0000; }
+
+form { margin: 0; }
+
+.outerbox {
+	background: #CCFFCC;
+	border: 1px outset white;
+	padding: 7px;
+	margin-bottom: 1em;
+	margin-left: 2.5%;
+	margin-right: 2.5%;
+	clear: both;
+}
+.innerbox { border: 1px inset white; padding: 6px; }
+#titlebox h1 { font-size: 1.5em; font-weight: normal; padding: 0; margin: 0; }
+#createbox h2 { font-size: 1.2em; font-weight: bold; margin: 0 0 0.5em 0.3em; }
+
+/* thread box (used for every thread, on the list and on its own page) */
+#posts .thread {
+	margin-left: 2.5%;
+	margin-right: 2.5%;
+	position: relative;
+	background: #EFEFEF;
+	border: 1px outset white;
+	padding: 7px;
+	margin-bottom: 2em;
+	clear: both;
+}
+#posts h2 {
+	color: #FF0000;
+	font-size: 1.5em;
+	font-weight: bold;
+	margin: 0 0 -1px 0;
+	padding: 1em 0 0 0.3em;
+	border-top: 1px inset white;
+	border-left: 1px inset white;
+	border-right: 1px inset white;
+}
+#posts h2 a { color: #FF0000; text-decoration: none; }
+#posts h2 a:hover { text-decoration: underline; }
+#posts h2 small { font-size: 1em; font-weight: normal; }
+#posts .replies {
+	clear: both;
+	margin: 0;
+	padding: 3px;
+	border-left: 1px inset white;
+	border-right: 1px inset white;
+}
+#posts .reply { clear: both; margin: 0 0 0.5em 0; }
+#posts h3 { font-size: 1em; font-weight: normal; margin: 0; padding: 0; }
+#posts h3 .replynum { font-weight: bold; margin-left: 0.3em; margin-right: 0.3em; }
+#posts h3 .postername { color: red; font-weight: bold; }
+#posts h3 a.replylink { color: #000080; text-decoration: none; }
+#posts h3 a.replylink:hover { color: #DD0000; }
+.replytext { margin: 0.5em 0 0 3em; word-break: break-all; }
+#posts .replyabbrev { color: red; margin-left: 3em; margin-bottom: 0.5em; }
+#posts form {
+	clear: both;
+	background: #EFEFEF;
+	font-family: serif;
+	padding: 6px 6px 1em 6px;
+	border-left: 1px inset white;
+	border-right: 1px inset white;
+	border-bottom: 1px inset white;
+}
+
+/* ---- moderator tools ---- */
+form.mod, #posts form.mod {
+	display: inline;
+	padding: 0;
+	border: 0;
+	background: none;
+	font-family: inherit;
+}
+form.mod input[type=submit] { font-size: small; }
+.modbar { margin: 4px 0 4px 0.3em; }
+.deleted { color: #AFAFAF; font-weight: bold; }
+form.mod input[type=submit], input.modoff { font-size: small; }
+#footer { text-align: center; font-size: 0.8em; margin-top: 1em; }

@@ -192,11 +192,78 @@ function buildOptionsElement() {
 	}
 	var styleSel = document.getElementById('switchStylesheet');
 	if (styleSel) {
-		styleSel.addEventListener('change', function(){
-			if (this.value === '') { return; }
-			if (window.schanSetStyle) { window.schanSetStyle(this.value, true); }
+		var lastName = '', lastTime = 0;
+
+		// the stylesheet links of the styles in the picker, with their names
+		var styleLinks = function(){
+			var out = [], links = document.querySelectorAll('link[rel~="stylesheet"]');
+			for (var i = 0; i < links.length; i++) {
+				var m = (links[i].getAttribute('href') || '').match(/^(.*\/)?([^\/]+)\.css(?:\?.*)?$/);
+				if (!m || m[2] === 'global') { continue; }
+				for (var j = 0; j < styleSel.options.length; j++) {
+					if (styleSel.options[j].value === m[2]) { out.push({ el: links[i], name: m[2], base: m[1] || '' }); break; }
+				}
+			}
+			return out;
+		};
+
+		// true once the chosen style is really loaded and on
+		var isApplied = function(name){
+			var all = styleLinks();
+			for (var i = 0; i < all.length; i++) {
+				if (all[i].name === name && !all[i].el.disabled && all[i].el.sheet) { return true; }
+			}
+			return false;
+		};
+
+		// switch the stylesheet links directly (used when schanSetStyle isn't there)
+		var switchLinks = function(name){
+			var all = styleLinks(), target = null, others = [], base = '';
+			for (var i = 0; i < all.length; i++) {
+				base = all[i].base;
+				if (all[i].name === name) { target = all[i].el; } else { others.push(all[i].el); }
+			}
+			var finish = function(){
+				for (var k = 0; k < others.length; k++) { others[k].disabled = true; }
+				syncAccent();
+			};
+			if (target) {
+				// alternate sheets ignore disabled=false if it was already false, so toggle it
+				target.disabled = true;
+				target.disabled = false;
+				if (target.sheet) { finish(); } else { target.addEventListener('load', finish); }
+			} else {
+				// load the new sheet first, then drop the old ones so there is no unstyled flash
+				var l = document.createElement('link');
+				l.rel = 'stylesheet';
+				l.href = base + encodeURIComponent(name) + '.css';
+				l.onload = finish;
+				document.head.appendChild(l);
+			}
+			try { localStorage.setItem('schan_style', name); } catch (e) {}
+		};
+
+		var runStyle = function(name){
+			if (window.schanSetStyle) { window.schanSetStyle(name, true); } else { switchLinks(name); }
 			syncAccent();
-		});
+		};
+
+		// swaps the theme the moment the select changes (input fires before change, on arrow keys too)
+		var applyStyle = function(){
+			var name = styleSel.value, now = Date.now();
+			if (name === '') { return; }
+			if (name === lastName && now - lastTime < 80) { return; }
+			lastName = name;
+			lastTime = now;
+			runStyle(name);
+			// first switch on a page can miss (sheet not loaded yet); if so, do it once more
+			setTimeout(function(){
+				if (styleSel.value === name && !isApplied(name)) { runStyle(name); }
+				syncAccent();
+			}, 300);
+		};
+		styleSel.addEventListener('input', applyStyle);
+		styleSel.addEventListener('change', applyStyle);
 	}
 	fivech.addEventListener('change', function(){
 		try { localStorage.setItem('schan_5ch', fivech.checked ? '1' : '0'); } catch (e) {}
@@ -323,7 +390,6 @@ function buildPostForm($parent, $staff_post = false, $render_board = null) {
 EOF;
 		if (function_exists('roleIsFake') && roleIsFake(isset($GLOBALS['account']) ? $GLOBALS['account'] : array())) {
 			$input_extra = preg_replace('#<tr>\s*<td class="postblock">\s*' . preg_quote($txt_raw_html, '#') . '.*?</tr>#s', '', $input_extra, 1);
-			$input_extra .= roleFakeCapcodeRowsHTML();
 		}
 
 		$maxlen_name = -1;

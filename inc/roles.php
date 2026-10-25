@@ -1,14 +1,21 @@
 <?php
 /*
- * Extra staff roles.
+ * Staff roles: everything about a role is configured in roleConfig() below.
  *
- *   Janitor (4)  Can only delete the files (image / media) of posts from the manage panel.
- *                Cannot delete posts, ban, sticky, lock, move, post, or open any other manage page.
- *   Fake    (5)  Can only post from the manage panel, with a capcode of their own choosing.
- *                No moderation tools, no raw HTML, and cannot reply to locked threads.
+ * For each role:
+ *   label    Name shown in the manage panel.
+ *   capcode  What is added after the name of that role's posts:
+ *              array('name' => 'Admin', 'color' => 'red')  ->  ## Admin   (in that color)
+ *              null                                          ->  no capcode
+ *   allowed  Which manage actions the role may use (they are the GET parameters of the manage page).
+ *              array('delete', ...)  ->  only these, anything else is refused by roleGate() on the server
  *
- * Both are enforced on the server by roleGate(), which refuses every manage request that uses
- * anything other than the few actions listed below, so hiding buttons is only cosmetic.
+ * Janitor (4)  Can delete posts, delete / spoiler their files, approve / reject pending posts, and post
+ *              (no raw HTML, not into locked threads). Cannot ban, sticky, lock, move or open any other page.
+ * Fake    (5)  Can only post, with no form options. Posts carry the capcode set for this role below.
+ *              No moderation tools, no raw HTML, cannot reply to locked threads.
+ *
+ * The post form has no capcode dropdown: a post always gets the capcode of the poster's role.
  */
 
 if (!defined('SCHAN_JANITOR')) {
@@ -18,8 +25,54 @@ if (!defined('SCHAN_FAKE')) {
 	define('SCHAN_FAKE', 5);
 }
 
+function roleConfig() {
+	return array(
+
+		// Super-administrator: everything, including accounts, boards, configuration, extensions, import, migration, move
+		SCHAN_SUPER_ADMINISTRATOR => array(
+			'label' => __('Super-administrator'),
+			'capcode' => array('name' => 'Admin', 'color' => 'red'),
+			'allowed' => array('manage', 'board', 'moderate', 'staffpost', 'dashboard', 'mthread', 'mpage', 'tpage', 'changepassword', 'logout', 'delete', 'deletefile', 'spoiler', 'setspoiler', 'approve', 'approvemedia', 'approvelinks', 'pending', 'pendingreturn', 'placeholder', 'edit', 'sticky', 'setsticky', 'lock', 'setlock', 'trustip', 'settrust', 'bans', 'lift', 'keywords', 'deletekeyword', 'reports', 'clearreports', 'countries', 'modlog', 'pages', 'pageedit', 'pagenew', 'home', 'emoji', 'rebuildall', 'current', 'move', 'global', 'accounts', 'boards', 'new', 'config', 'extensions', 'import', 'dbmigrate', 'go'),
+		),
+
+		// Administrator: all moderation and site tools, no accounts / boards / configuration / extensions / import / migration / move
+		SCHAN_ADMINISTRATOR => array(
+			'label' => __('Administrator'),
+			'capcode' => array('name' => 'Admin', 'color' => 'red'),
+			'allowed' => array('manage', 'board', 'moderate', 'staffpost', 'dashboard', 'mthread', 'mpage', 'tpage', 'changepassword', 'logout', 'delete', 'deletefile', 'spoiler', 'setspoiler', 'approve', 'approvemedia', 'approvelinks', 'pending', 'pendingreturn', 'placeholder', 'edit', 'sticky', 'setsticky', 'lock', 'setlock', 'trustip', 'settrust', 'bans', 'lift', 'keywords', 'deletekeyword', 'reports', 'clearreports', 'countries', 'modlog', 'pages', 'pageedit', 'pagenew', 'home', 'emoji', 'rebuildall', 'current'),
+		),
+
+		// Moderator: same actions as Administrator
+		SCHAN_MODERATOR => array(
+			'label' => __('Moderator'),
+			'capcode' => array('name' => 'Mod', 'color' => 'purple'),
+			'allowed' => array('manage', 'board', 'moderate', 'staffpost', 'dashboard', 'mthread', 'mpage', 'tpage', 'changepassword', 'logout', 'delete', 'deletefile', 'spoiler', 'setspoiler', 'approve', 'approvemedia', 'approvelinks', 'pending', 'pendingreturn', 'placeholder', 'edit', 'sticky', 'setsticky', 'lock', 'setlock', 'trustip', 'settrust', 'bans', 'lift', 'keywords', 'deletekeyword', 'reports', 'clearreports', 'countries', 'modlog', 'pages', 'pageedit', 'pagenew', 'home', 'emoji', 'rebuildall', 'current'),
+		),
+
+		// Janitor: delete posts / files, spoiler files, approve or reject pending posts, post without capcode
+		SCHAN_JANITOR => array(
+			'label' => __('Janitor'),
+			'capcode' => null,
+			'allowed' => array('manage', 'board', 'moderate', 'staffpost', 'dashboard', 'delete', 'deletefile', 'spoiler', 'setspoiler', 'approve', 'approvemedia', 'approvelinks', 'pending', 'pendingreturn', 'tpage', 'mthread', 'mpage', 'changepassword', 'logout'),
+		),
+
+		// Fake: can only post, always with this capcode
+		SCHAN_FAKE => array(
+			'label' => __('Fake'),
+			'capcode' => array('name' => 'Admin', 'color' => 'red'),
+			'allowed' => array('manage', 'board', 'staffpost', 'dashboard', 'mthread', 'mpage', 'changepassword', 'logout'),
+		),
+	);
+}
+
 function roleOf($account) {
 	return (is_array($account) && isset($account['role'])) ? intval($account['role']) : -1;
+}
+
+function roleSettings($account) {
+	$all = roleConfig();
+	$role = roleOf($account);
+	return isset($all[$role]) ? $all[$role] : null;
 }
 
 function roleIsJanitor($account) {
@@ -31,27 +84,32 @@ function roleIsFake($account) {
 }
 
 function roleLabel($role) {
+	$all = roleConfig();
 	$role = intval($role);
-	if ($role === SCHAN_JANITOR) {
-		return __('Janitor');
-	}
-	if ($role === SCHAN_FAKE) {
-		return __('Fake');
-	}
-	return '';
+	return isset($all[$role]) ? $all[$role]['label'] : '';
 }
 
-// Refuses any manage request that a Janitor / Fake account is not allowed to make.
+// Refuses any manage request that the account's role is not allowed to make.
 // Every manage action is chosen by a GET parameter, so allowing only certain parameters is enough.
 function roleGate($account) {
-	$allowed = null;
-	if (roleIsJanitor($account)) {
-		$allowed = array('manage', 'board', 'moderate', 'deletefile', 'tpage', 'changepassword', 'logout');
-	} else if (roleIsFake($account)) {
-		$allowed = array('manage', 'board', 'staffpost', 'changepassword', 'logout');
-	}
-	if ($allowed === null) {
+	$cfg = roleSettings($account);
+	if ($cfg === null || $cfg['allowed'] === null) {
 		return;
+	}
+	$allowed = $cfg['allowed'];
+	// the CSRF token travels as an extra GET parameter on every mod button, it is not an action
+	// so let it through (found by asking the token helper what it appends, whatever it is called)
+	if (function_exists('manageCsrfAppendToURL')) {
+		$probe = html_entity_decode((string)manageCsrfAppendToURL('?x=1', '&'), ENT_QUOTES, 'UTF-8');
+		$qpos = strpos($probe, '?');
+		if ($qpos !== false) {
+			parse_str(substr($probe, $qpos + 1), $probe_params);
+			foreach (array_keys($probe_params) as $k) {
+				if ($k !== 'x') {
+					$allowed[] = (string)$k;
+				}
+			}
+		}
 	}
 	foreach (array_keys($_GET) as $key) {
 		if (!in_array($key, $allowed, true)) {
@@ -60,29 +118,23 @@ function roleGate($account) {
 	}
 }
 
-// The capcode HTML for a Fake account's post: '' means "no capcode".
-// Returns null for every other role, so the normal Admin / Mod capcode is used.
-function roleCustomCapcode($account) {
-	if (!roleIsFake($account)) {
-		return null;
-	}
-	$text = isset($_POST['fake_capcode']) && is_string($_POST['fake_capcode']) ? $_POST['fake_capcode'] : '';
-	$text = trim(str_replace(array("\r", "\n", "\0"), '', $text));
-	$text = function_exists('mb_substr') ? mb_substr($text, 0, 32, 'UTF-8') : substr($text, 0, 32);
-	if ($text === '') {
-		return '';
-	}
-	$color = isset($_POST['fake_capcode_color']) && is_string($_POST['fake_capcode_color']) ? trim($_POST['fake_capcode_color']) : '';
-	if (!preg_match('/^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6}|[a-zA-Z]{3,20})$/', $color)) {
-		$color = 'red';
-	}
-	return ' <span style="color: ' . $color . ';">## ' . htmlspecialchars($text, ENT_QUOTES, 'UTF-8') . '</span>';
+function roleColorOK($color) {
+	return (bool)preg_match('/^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6}|[a-zA-Z]{3,20})$/', (string)$color);
 }
 
-// Extra rows for the staff post form shown to a Fake account.
-function roleFakeCapcodeRowsHTML() {
-	return '<tr><td class="postblock">' . __('Capcode') . '</td><td><input type="text" name="fake_capcode" size="28" maxlength="32" placeholder="' . htmlentities(__('Text shown after ##'), ENT_QUOTES) . '"></td></tr>'
-		. '<tr><td class="postblock">' . __('Capcode color') . '</td><td><input type="text" name="fake_capcode_color" size="28" maxlength="20" value="red"> <small>' . __('A color name (red) or hex code (#ff0000)') . '</small></td></tr>';
+// The capcode HTML for a staff post by this account: '' means "no capcode".
+// Returns null if the role is not configured, so the caller can fall back to the old behaviour.
+function roleCustomCapcode($account) {
+	$cfg = roleSettings($account);
+	if ($cfg === null) {
+		return null;
+	}
+	$c = $cfg['capcode'];
+	if (!is_array($c) || !isset($c['name']) || $c['name'] === '') {
+		return '';
+	}
+	$color = (isset($c['color']) && roleColorOK($c['color'])) ? $c['color'] : 'red';
+	return ' <span style="color: ' . $color . ';">## ' . htmlspecialchars($c['name'], ENT_QUOTES, 'UTF-8') . '</span>';
 }
 
 // What a Janitor sees when moderating a post: the post and one button.

@@ -169,7 +169,7 @@ function videoDimensions($file_location) {
 
 	$dimensions = '';
 	$exit_status = 1;
-	exec("ffprobe -hide_banner -loglevel error -of csv=p=0 -select_streams v -show_entries stream=width,height $file_location", $dimensions, $exit_status);
+	exec("ffprobe -hide_banner -loglevel error -of csv=p=0 -select_streams v -show_entries stream=width,height " . escapeshellarg($file_location), $dimensions, $exit_status);
 	if ($exit_status != 0) {
 		return array(0, 0);
 	}
@@ -193,7 +193,7 @@ function videoDuration($file_location) {
 
 	$duration = '';
 	$exit_status = 1;
-	exec("ffprobe -hide_banner -loglevel error -of csv=p=0 -show_entries format=duration $file_location", $duration, $exit_status);
+	exec("ffprobe -hide_banner -loglevel error -of csv=p=0 -show_entries format=duration " . escapeshellarg($file_location), $duration, $exit_status);
 	if ($exit_status != 0) {
 		return 0;
 	}
@@ -214,7 +214,10 @@ function ffmpegThumbnail($file_location, $thumb_location, $new_w, $new_h) {
 	$quarter = videoDuration($file_location) / 4;
 
 	$exit_status = 1;
-	exec("ffmpeg -hide_banner -loglevel error -ss $quarter -i $file_location -frames:v 1 -vf scale=w=$new_w:h=$new_h:force_original_aspect_ratio=decrease $thumb_location", $discard, $exit_status);
+	$quarter = escapeshellarg($quarter);
+	$new_w = (int)$new_w;
+	$new_h = (int)$new_h;
+	exec("ffmpeg -hide_banner -loglevel error -ss $quarter -i " . escapeshellarg($file_location) . " -frames:v 1 -vf scale=w=$new_w:h=$new_h:force_original_aspect_ratio=decrease " . escapeshellarg($thumb_location), $discard, $exit_status);
 	if ($exit_status != 0) {
 		return false;
 	}
@@ -304,7 +307,7 @@ function createThumbnail($file_location, $thumb_location, $new_w, $new_h, $spoil
 		}
 
 		$exit_status = 1;
-		exec("convert $file_location -auto-orient -thumbnail '" . $new_w . "x" . $new_h . "' -coalesce -layers OptimizeFrame -depth 4 -type palettealpha $thumb_location", $discard, $exit_status);
+		exec("convert " . escapeshellarg($file_location) . " -auto-orient -thumbnail " . escapeshellarg(((int)$new_w) . "x" . ((int)$new_h)) . " -coalesce -layers OptimizeFrame -depth 4 -type palettealpha " . escapeshellarg($thumb_location), $discard, $exit_status);
 
 		if ($exit_status != 0) {
 			return false;

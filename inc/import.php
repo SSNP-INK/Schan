@@ -980,7 +980,7 @@ function imp_job_finish(&$job) {
 		clearPostCache();
 	}
 	if (function_exists('manageLogAction')) {
-		manageLogAction('Imported a ' . ($job['type'] === 'vichan' ? 'vichan' : 'Schan') . ' database (' . implode(', ', $job['slugs']) . ')');
+		manageLogAction('Imported a ' . ($job['type'] === 'vichan' ? 'vichan' : 'TinyIB') . ' database (' . implode(', ', $job['slugs']) . ')');
 	}
 	$rep = $job['rep'];
 	if (!$job['opts']['rebuild'] && $job['opts']['posts']) {
@@ -1247,13 +1247,13 @@ function imp_form_upload($error = '') {
 	return $text . '<form id="schan" name="schan" method="post" action="?manage&amp;import" enctype="multipart/form-data">'
 		. '<input type="hidden" name="import_step" value="upload">'
 		. '<input type="hidden" name="token" value="' . imp_h(imp_token()) . '">'
-		. '<fieldset><legend>Import a vichan or Schan database</legend>'
+		. '<fieldset><legend>Import a vichan or TinyIB database</legend>'
 		. '<p>Select the <b>.sql</b> dump (a .sql.gz also works). Boards, threads, replies, bans, staff accounts, logs and reports are imported; '
-		. 'the type is detected automatically. A Schan dump goes into the default board (' . imp_h(SCHAN_DEFAULTBOARD) . '), a vichan dump creates a board for each of its boards.</p>'
+		. 'the type is detected automatically. A TinyIB dump goes into the default board (' . imp_h(SCHAN_DEFAULTBOARD) . '), a vichan dump creates a board for each of its boards.</p>'
 		. '<table border="0">'
 		. '<tr><td>Browse for the file</td><td><input type="file" name="sqlfile" accept=".sql,.gz,.sql.gz,application/sql,text/plain,application/gzip"></td></tr>'
 		. '<tr><td><label for="imp_sqlpath">&hellip; or path to it on the server</label></td><td><input type="text" name="sqlpath" id="imp_sqlpath" value="" size="50" placeholder="/home/user/backup.sql"> <small>used when no file is chosen; no upload size limit</small></td></tr>'
-		. '<tr><td><label for="imp_filespath">Old install folder (optional)</label></td><td><input type="text" name="filespath" id="imp_filespath" value="" size="50" placeholder="/var/www/vichan"> <small>images and thumbnails are copied from its board folders (or src/ and thumb/ for Schan)</small></td></tr>'
+		. '<tr><td><label for="imp_filespath">Old install folder (optional)</label></td><td><input type="text" name="filespath" id="imp_filespath" value="" size="50" placeholder="/var/www/vichan"> <small>images and thumbnails are copied from its board folders (or src/ and thumb/ for TinyIB)</small></td></tr>'
 		. '<tr><td>&nbsp;</td><td><input type="submit" value="Import" class="managebutton" onclick="return confirm(\'Start the import now? Keep this page open until it finishes.\');"></td></tr>'
 		. '</table>'
 		. '<p><small>Maximum upload size: ' . imp_h(ini_get('upload_max_filesize')) . ' (post limit ' . imp_h(ini_get('post_max_size')) . '). Use the server path for bigger dumps.</small></p>'
@@ -1416,7 +1416,7 @@ function handleImportManage() {
 	if ($type === '') {
 		$failed = $stats['failed'] ? ' (' . $stats['failed'] . ' statements failed' . (empty($stats['errors']) ? '' : ': ' . $stats['errors'][0]) . ')' : '';
 		imp_cleanup();
-		return imp_form_upload('That file does not look like a vichan or Schan dump: no posts tables were found' . $failed . '.');
+		return imp_form_upload('That file does not look like a vichan or TinyIB dump: no posts tables were found' . $failed . '.');
 	}
 
 	$cfg = array('prefix' => $tmp . $prefix, 'files' => $filespath);
@@ -1447,7 +1447,7 @@ function handleImportManage() {
 		'acct_map' => array(), 'slug_of' => array(), 'slugs' => array(),
 		'log_off' => 0, 'log_added' => 0, 'rb' => array('pi' => 0, 'last' => 0, 'phase' => 'threads', 'done' => 0),
 	);
-	$job['rep']['lines'][] = 'Detected a <b>' . ($type === 'vichan' ? 'vichan' : 'Schan') . '</b> dump with ' . count($tables) . ' tables.';
+	$job['rep']['lines'][] = 'Detected a <b>' . ($type === 'vichan' ? 'vichan' : 'TinyIB') . '</b> dump with ' . count($tables) . ' tables.';
 	if ($stats['failed']) {
 		$job['rep']['warnings'][] = $stats['failed'] . ' statements in the dump could not be loaded' . (empty($stats['errors']) ? '' : ' (first error: ' . $stats['errors'][0] . ')') . '. Some data may be missing.';
 	}
