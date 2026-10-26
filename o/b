@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="content-type" content="text/html;charset=UTF-8">
+		<meta http-equiv="cache-control" content="max-age=0">
+		<meta http-equiv="cache-control" content="no-cache">
+		<meta http-equiv="expires" content="0">
+		<meta http-equiv="expires" content="Tue, 01 Jan 1980 1:00:00 GMT">
+		<meta http-equiv="pragma" content="no-cache">
+		<meta name="viewport" content="width=device-width,initial-scale=1">
+		<title>o - overboard - Latest threads from every board</title>
+		<link rel="shortcut icon" href="/imgb/favicon.ico">
+		<link rel="stylesheet" type="text/css" href="/imgb/css/global.css"><link rel="stylesheet" type="text/css" href="/imgb/css/yotsuba_b.css" title="yotsuba b" id="mainStylesheet"><link rel="alternate stylesheet" type="text/css" href="/imgb/css/futaba.css" title="Futaba"><link rel="alternate stylesheet" type="text/css" href="/imgb/css/burichan.css" title="Burichan"><link rel="alternate stylesheet" type="text/css" href="/imgb/css/2chaneru.css" title="2ch"><link rel="alternate stylesheet" type="text/css" href="/imgb/css/photon.css" title="photon"><link rel="alternate stylesheet" type="text/css" href="/imgb/css/tomorrow.css" title="tomorrow"><link rel="alternate stylesheet" type="text/css" href="/imgb/css/yotsuba.css" title="yotsuba">
+		<script type="text/javascript">var currentBoard = "o";
+var schanRoot = "\/imgb";</script>
+		<script type="text/javascript">
+		/* Hide thread: a [-] at the right of each thread's title line on index pages collapses the thread
+		   to just that line (no image, text or replies); it turns into [+], which expands it again.
+		   The choice is remembered in this browser. */
+		(function(){
+			var KEY = 'schan_hidethreads';
+			function load(){ try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { return {}; } }
+			function save(o){ try { localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {} }
+			function keep(k){
+				return k.nodeName === 'A' || k.nodeName === 'LABEL' ||
+					(k.classList && (k.classList.contains('reflink') || k.classList.contains('threadtoggle')));
+			}
+			function mark(k, hide){
+				if (hide) { k.classList.add('schan-collapsed'); } else { k.classList.remove('schan-collapsed'); }
+			}
+			function apply(op, hide){
+				var k;
+				for (k = op.firstElementChild; k; k = k.nextElementSibling) {
+					if (!keep(k)) { mark(k, hide); }
+				}
+				for (k = op.nextElementSibling; k && k.nodeName !== 'HR' && !k.classList.contains('op'); k = k.nextElementSibling) {
+					mark(k, hide);
+				}
+			}
+			function replyLink(op){
+				for (var k = op.firstElementChild; k; k = k.nextElementSibling) {
+					if (k.nodeName === 'A' && (k.getAttribute('href') || '').indexOf('res/') === 0) { return k; }
+				}
+				return null;
+			}
+			function init(){
+				var st = document.createElement('style');
+				st.textContent = '.schan-collapsed{display:none !important;}';
+				document.head.appendChild(st);
+				var ops = document.querySelectorAll('#posts > div.op');
+				var hidden = load();
+				for (var i = 0; i < ops.length; i++) {
+					(function(op){
+						var reply = replyLink(op);
+						if (!reply) { return; }
+						var key = (window.currentBoard || '') + ':' + op.id.replace('post', '');
+						var box = document.createElement('span'), a = document.createElement('a');
+						box.className = 'threadtoggle';
+						box.style.cssText = 'display:block;margin:0 6px 2px 0;';
+						a.href = '#';
+						a.title = 'Hide / show thread';
+						box.appendChild(document.createTextNode('['));
+						box.appendChild(a);
+						box.appendChild(document.createTextNode(']'));
+						// Top-left of the thread, above the image. When collapsed it sits inline, left of the title line.
+						op.insertBefore(box, op.firstChild);
+						function set(hide){
+							a.textContent = hide ? '+' : '-';
+							box.style.display = hide ? 'inline' : 'block';
+							apply(op, hide);
+						}
+						a.onclick = function(e){
+							e.preventDefault();
+							var hide = !hidden[key];
+							if (hide) { hidden[key] = 1; } else { delete hidden[key]; }
+							save(hidden);
+							set(hide);
+						};
+						set(!!hidden[key]);
+					})(ops[i]);
+				}
+			}
+			if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
+		})();
+		</script>
+		<script type="text/javascript">
+		/* 5ch mode (Options > General): posts are numbered by their place in the thread instead of by
+		   post number: the opening post is 1, the replies 2, 3, 4 ...  Only the displayed numbers
+		   change; quoting and replying still use the real post numbers. */
+		(function(){
+			var KEY = 'schan_5ch';
+			function enabled(){ try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; } }
+			function groups(){
+				var box = document.getElementById('posts'), out = [], cur = null, k;
+				if (!box) { return out; }
+				for (k = box.firstElementChild; k; k = k.nextElementSibling) {
+					if (k.nodeName === 'DIV' && k.classList.contains('op')) {
+						var tid = k.id.replace('post', '');
+						cur = { thread: tid, omitted: 0, items: [{ el: k, id: tid }] };
+						out.push(cur);
+						continue;
+					}
+					if (!cur) { continue; }
+					if (k.nodeName === 'HR') { cur = null; continue; }
+					if (k.classList.contains('omittedposts')) {
+						var m = /(\d+)/.exec(k.textContent);
+						cur.omitted = m ? parseInt(m[1], 10) : 0;
+						continue;
+					}
+					var td = k.querySelector ? k.querySelector('td.reply[id^="post"]') : null;
+					if (td) { cur.items.push({ el: td, id: td.id.replace('post', '') }); }
+				}
+				for (var g = 0; g < out.length; g++) {
+					for (var i = 0; i < out[g].items.length; i++) {
+						out[g].items[i].num = (i === 0) ? 1 : (1 + out[g].omitted + i);
+					}
+				}
+				return out;
+			}
+			function setText(a, text, real){
+				if (!a.hasAttribute('data-orig5')) { a.setAttribute('data-orig5', a.textContent); }
+				a.textContent = text;
+				if (real) { a.title = real; }
+			}
+			function render(){
+				var box = document.getElementById('posts');
+				if (!box) { return; }
+				var i, j, restore = box.querySelectorAll('[data-orig5]');
+				for (i = 0; i < restore.length; i++) {
+					restore[i].textContent = restore[i].getAttribute('data-orig5');
+					restore[i].removeAttribute('data-orig5');
+					restore[i].removeAttribute('title');
+				}
+				if (!enabled()) { return; }
+				var gs = groups(), map = {};
+				for (i = 0; i < gs.length; i++) {
+					for (j = 0; j < gs[i].items.length; j++) { map[gs[i].thread + ':' + gs[i].items[j].id] = gs[i].items[j].num; }
+				}
+				for (i = 0; i < gs.length; i++) {
+					for (j = 0; j < gs[i].items.length; j++) {
+						var it = gs[i].items[j];
+						var ref = it.el.querySelector('.reflink');
+						if (ref) {
+							var as = ref.getElementsByTagName('a');
+							for (var x = 0; x < as.length; x++) {
+								if (as[x].textContent === it.id) { setText(as[x], String(it.num), 'No.' + it.id); break; }
+							}
+						}
+						var links = it.el.getElementsByTagName('a');
+						for (var y = 0; y < links.length; y++) {
+							var t = links[y].textContent, q = /^>>(\d+)/.exec(t);
+							if (!q || q[0].length !== t.length || links[y].hasAttribute('data-orig5')) { continue; }
+							var href = links[y].getAttribute('href') || '', parts = href.split('#'), tm = /(\d+)\.html/.exec(parts[0]);
+							var key = (tm ? tm[1] : gs[i].thread) + ':' + q[1];
+							if (map.hasOwnProperty(key)) { setText(links[y], '>>' + map[key], 'No.' + q[1]); }
+						}
+					}
+				}
+			}
+			window.schan5chRender = render;
+			var timer = null;
+			function later(){ if (timer) { clearTimeout(timer); } timer = setTimeout(render, 60); }
+			function init(){
+				render();
+				var box = document.getElementById('posts');
+				if (box && window.MutationObserver) { new MutationObserver(later).observe(box, { childList: true }); }
+			}
+			if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
+			window.addEventListener('load', render);
+		})();
+		</script>
+		<script type="text/javascript">
+		/* User CSS: stored in this browser (Options > User CSS) and applied on every page */
+		(function(){
+			function apply(){
+				var css = '';
+				try { css = localStorage.getItem('schan_usercss') || ''; } catch (e) {}
+				var el = document.getElementById('schanUserCSS');
+				if (css === '') {
+					if (el && el.parentNode) { el.parentNode.removeChild(el); }
+					return;
+				}
+				if (!el) { el = document.createElement('style'); el.id = 'schanUserCSS'; }
+				el.textContent = css;
+				document.head.appendChild(el);
+			}
+			window.schanApplyUserCSS = apply;
+			apply();
+			document.addEventListener('DOMContentLoaded', apply);
+			window.addEventListener('load', apply);
+		})();
+		</script>
+		<script src="/imgb/js/jquery.js"></script>
+		<script src="/imgb/js/schan.js"></script>
+		<script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
+		<script type="text/javascript">
+		function toggleSage(cb){
+			var f=document.getElementById("emailfield");
+			if(!f){return true;}
+			if(cb.checked){
+				if(f.value.toLowerCase()!=="sage"){
+					f.setAttribute("data-prev", f.value);
+				}
+				f.value="sage";
+			} else {
+				if(f.value.toLowerCase()==="sage"){
+					f.value=f.getAttribute("data-prev")||"";
+				}
+			}
+			return true;
+		}
+		</script>
+		<script type="text/javascript">
+function pollAddOption(){
+	var box=document.getElementById("pollopts");
+	if(!box){return false;}
+	var n=box.getElementsByTagName("input").length;
+	if(n>=8){return false;}
+	var i=document.createElement("input");
+	i.type="text";i.name="poll[]";i.size=28;i.maxLength=60;i.autocomplete="off";
+	i.placeholder="Option "+(n+1);
+	box.appendChild(i);
+	box.appendChild(document.createElement("br"));
+	return false;
+}
+function pollBoard(){return (typeof currentBoard==="string")?currentBoard:"";}
+function pollBoardFor(id){var e=document.getElementById("poll"+id),b=e?e.getAttribute("data-board"):null;return b?b:pollBoard();}
+function pollURL(q,b){
+	var root=(typeof schanRoot==="string")?schanRoot:"";
+	return root+"/imgboard.php?"+q+"&board="+encodeURIComponent(b!==undefined&&b!==null?b:pollBoard());
+}
+function pollRequest(url,body,cb){
+	var x=new XMLHttpRequest();
+	x.open(body?"POST":"GET",url,true);
+	if(body){x.setRequestHeader("Content-Type","application/x-www-form-urlencoded");}
+	x.onreadystatechange=function(){
+		if(x.readyState!==4){return;}
+		var r=null;
+		try{r=JSON.parse(x.responseText);}catch(e){}
+		cb(r);
+	};
+	x.send(body||null);
+}
+/* Writes "= count" beside each option. Once this IP has voted, the options go grey and locked. */
+function pollApply(id,r){
+	if(!r||!r.options){return;}
+	for(var i=0;i<r.options.length;i++){
+		var c=document.getElementById("pollcount"+id+"_"+i);
+		if(c){c.textContent=" = "+(r.votes[i]||0);}
+	}
+	if(r.voted>=0){
+		var radios=document.getElementsByName("pollopt"+id);
+		for(var j=0;j<radios.length;j++){
+			radios[j].checked=(parseInt(radios[j].value,10)===r.voted);
+			radios[j].disabled=true;
+		}
+		var opts=document.getElementById("polloptions"+id);
+		var btns=document.getElementById("pollbuttons"+id);
+		if(opts){opts.style.opacity="0.5";}
+		if(btns){btns.style.display="none";}
+	}
+}
+function pollVote(id){
+	var radios=document.getElementsByName("pollopt"+id),v=-1;
+	for(var i=0;i<radios.length;i++){if(radios[i].checked){v=radios[i].value;break;}}
+	if(v<0){alert("Choose an option first.");return;}
+	var pb=pollBoardFor(id);
+	pollRequest(pollURL("vote",pb),"poll="+id+"&option="+encodeURIComponent(v)+"&board="+encodeURIComponent(pb),function(r){
+		if(!r){alert("Your vote could not be recorded.");return;}
+		if(r.error){alert(r.error);}
+		pollApply(id,r);
+	});
+}
+function pollResults(id){
+	pollRequest(pollURL("pollresults="+id,pollBoardFor(id)),null,function(r){
+		if(r&&r.options){pollApply(id,r);}
+		else{alert((r&&r.error)?r.error:"Could not load the results.");}
+	});
+}
+/* On page load, polls this IP already voted in are shown greyed out with their counts */
+function pollInit(){
+	if(!document.querySelectorAll){return;}
+	var els=document.querySelectorAll("[data-poll]"),groups={},any=false;
+	for(var i=0;i<els.length;i++){
+		var b=els[i].getAttribute("data-board")||pollBoard();
+		(groups[b]=groups[b]||[]).push(els[i].getAttribute("data-poll"));any=true;
+	}
+	if(!any){return;}
+	for(var g in groups){if(!groups.hasOwnProperty(g)){continue;}(function(g){
+		pollRequest(pollURL("pollstatus="+groups[g].join(","),g),null,function(r){
+			if(!r){return;}
+			for(var k in r){
+				if(r.hasOwnProperty(k)&&r[k]&&r[k].options&&r[k].voted>=0){pollApply(k,r[k]);}
+			}
+		});
+	})(g);}
+}
+if(document.addEventListener){document.addEventListener("DOMContentLoaded",pollInit,false);}
+</script>
+		<script type="text/javascript">
+		/* Hover image preview: shows the full-size file next to the cursor while hovering a thumbnail */
+		(function(){
+			var pv = null, curThumb = null, lastX = 0, lastY = 0;
+			var MARGIN = 20;
+
+			function fileExt(url){
+				return url.split('#')[0].split('?')[0].split('.').pop().toLowerCase();
+			}
+
+			function previewURL(img){
+				var a = img.parentNode;
+				while (a && a.nodeName !== 'A') { a = a.parentNode; }
+				if (!a) { return null; }
+				var href = a.getAttribute('href') || '';
+				if (href === '' || href === '#') { return null; }
+				var ext = fileExt(href);
+				if (['jpg','jpeg','png','gif','webm','mp4'].indexOf(ext) === -1) { return null; }
+				return {url: href, video: (ext === 'webm' || ext === 'mp4')};
+			}
+
+			function position(){
+				if (!pv) { return; }
+				var vw = document.documentElement.clientWidth;
+				var vh = window.innerHeight;
+				var rightSpace = vw - lastX - MARGIN * 2;
+				var leftSpace = lastX - MARGIN * 2;
+				var onRight = rightSpace >= leftSpace;
+				var maxW = Math.max(100, onRight ? rightSpace : leftSpace);
+				var maxH = vh - 10;
+				pv.style.maxWidth = maxW + 'px';
+				pv.style.maxHeight = maxH + 'px';
+
+				var w = pv.offsetWidth, h = pv.offsetHeight;
+				var left = onRight ? lastX + MARGIN : lastX - MARGIN - w;
+				var top = lastY - h / 2;
+				if (top + h > vh - 5) { top = vh - h - 5; }
+				if (top < 5) { top = 5; }
+				pv.style.left = Math.max(0, left) + 'px';
+				pv.style.top = top + 'px';
+			}
+
+			function hide(){
+				if (pv) {
+					if (pv.pause) { try { pv.pause(); } catch (e) {} }
+					if (pv.parentNode) { pv.parentNode.removeChild(pv); }
+					pv = null;
+				}
+				curThumb = null;
+			}
+
+			function show(img, info){
+				hide();
+				curThumb = img;
+				var el;
+				if (info.video) {
+					el = document.createElement('video');
+					el.muted = true;
+					el.loop = true;
+					el.autoplay = true;
+					el.setAttribute('playsinline', '');
+					el.addEventListener('loadedmetadata', position);
+				} else {
+					el = document.createElement('img');
+					el.addEventListener('load', position);
+				}
+				el.style.cssText = 'position:fixed;z-index:99999;pointer-events:none;display:block;'
+					+ 'border:0;background:#000;box-shadow:0 0 6px rgba(0,0,0,.6);'
+					+ 'width:auto;height:auto;left:0;top:0;';
+				el.src = info.url;
+				pv = el;
+				document.body.appendChild(el);
+				position();
+				if (info.video && el.play) { var p = el.play(); if (p && p.catch) { p.catch(function(){}); } }
+			}
+
+			document.addEventListener('mouseover', function(e){
+				var t = e.target;
+				if (!t || t.nodeName !== 'IMG' || !t.classList.contains('thumb')) { return; }
+				try { if (localStorage.getItem('schan_hover') === '0') { return; } } catch (e) {}
+				if (t.getAttribute('data-spoiler')) { return; }
+				var info = previewURL(t);
+				if (!info) { return; }
+				lastX = e.clientX; lastY = e.clientY;
+				show(t, info);
+			});
+			document.addEventListener('mousemove', function(e){
+				if (!pv) { return; }
+				lastX = e.clientX; lastY = e.clientY;
+				position();
+			});
+			document.addEventListener('mouseout', function(e){
+				if (e.target === curThumb) { hide(); }
+			});
+			document.addEventListener('mousedown', hide);
+			document.addEventListener('scroll', function(){ if (pv) { position(); } }, true);
+			window.addEventListener('blur', hide);
+		})();
+		</script>
+		
+	</head>	<body>
+		<div class="boardbar" style="position:absolute;">[ <span class="boardlinks"><a href="/imgb/o/" class="current" title="overboard">o</a> / <a href="/imgb/b/" title="random">b</a> / <a href="/imgb/f/" title="fileboard">f</a> / <a href="/imgb/news/" title="news">news</a></span> ] [ <span class="customlinks"><a href="/imgb/rules.html">Rules</a></span> ]</div>
+		<div class="adminbar">
+			[<a href="catalog.html" style="text-decoration: underline;">Catalog</a>]
+			[<a href="/imgb/imgboard.php?manage" style="text-decoration: underline;">Manage</a>]
+			&#91;<a href="#" id="schanOptionsLink" style="text-decoration: underline;">Options</a>&#93;
+		</div>
+		<div id="schanOptions" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:100000;background:rgba(0,0,0,.45);">
+	<div class="reply" style="position:absolute;top:24px;left:50%;transform:translateX(-50%);width:620px;max-width:96vw;height:400px;max-height:90vh;display:flex;margin:0;padding:0;border:1px solid;box-sizing:border-box;overflow:hidden;">
+		<div id="schanOptSide" style="width:100px;flex:none;border-right:1px solid;text-align:center;padding-top:6px;font-size:11px;">
+			<a href="#" data-optstab="general" style="display:block;padding:6px 0;text-decoration:none;color:var(--opt-accent,inherit);">
+				<svg viewBox="0 0 24 24" width="24" height="24" style="display:block;margin:0 auto 2px;"><path d="M12 3 1.5 12.5H5V21h5.5v-6h3v6H19v-8.5h3.5z" fill="currentColor"></path></svg>
+				General
+			</a>
+			<a href="#" data-optstab="css" style="display:block;padding:6px 0;text-decoration:none;color:inherit;">
+				<svg viewBox="0 0 24 24" width="24" height="24" style="display:block;margin:0 auto 2px;"><path d="M8 6 2 12l6 6M16 6l6 6-6 6M14 4l-4 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+				User CSS
+			</a>
+		</div>
+		<div style="flex:1;padding:10px 14px;position:relative;overflow:auto;">
+			<a href="#" id="schanOptionsClose" title="Close" style="position:absolute;right:10px;top:4px;font-size:22px;line-height:1;text-decoration:none;color:inherit;">&#10006;</a>
+			<div id="schanPanel_general">
+				<div style="text-align:center;font-weight:bold;color:var(--opt-accent,inherit);margin-bottom:10px;">General</div>
+				<div style="margin:6px 0;">Style: <select id="switchStylesheet"><option value="">Style</option><option value="futaba">Futaba</option><option value="burichan">Burichan</option><option value="2chaneru">2ch</option><option value="photon">photon</option><option value="tomorrow">tomorrow</option><option value="yotsuba">yotsuba</option><option value="yotsuba_b">yotsuba b</option></select></div>
+				<div style="margin:6px 0;"><label><input type="checkbox" id="schanOptHover"> Image hover preview</label></div>
+				<div style="margin:6px 0;"><label><input type="checkbox" id="schan5chMode"> 5ch mode (number posts by their place in the thread)</label></div>
+			</div>
+			<div id="schanPanel_css" style="display:none;">
+				<div style="text-align:center;font-weight:bold;color:var(--opt-accent,inherit);margin-bottom:10px;">User CSS</div>
+				<div style="font-size:smaller;margin-bottom:6px;">Your own CSS, saved in this browser and applied on every page.</div>
+				<textarea id="schanUserCssText" spellcheck="false" style="width:100%;height:230px;box-sizing:border-box;font-family:monospace;font-size:12px;"></textarea>
+				<div style="margin-top:6px;"><input type="button" id="schanUserCssSave" value="Save"> <span id="schanUserCssStatus" style="font-size:smaller;"></span></div>
+			</div>
+		</div>
+	</div>
+</div>
+<script type="text/javascript">
+(function(){
+	var link = document.getElementById('schanOptionsLink'), box = document.getElementById('schanOptions');
+	if (!link || !box) { return; }
+	var hover = document.getElementById('schanOptHover');
+	var fivech = document.getElementById('schan5chMode');
+	var side = document.getElementById('schanOptSide');
+	var cssText = document.getElementById('schanUserCssText');
+	var cssStatus = document.getElementById('schanUserCssStatus');
+
+	function syncStyle(){
+		var sel = document.getElementById('switchStylesheet');
+		if (!sel) { return; }
+		try {
+			var links = document.querySelectorAll('link[rel~="stylesheet"]');
+			var found = '';
+			for (var i = 0; i < links.length; i++) {
+				if (links[i].disabled) { continue; }
+				var m = (links[i].getAttribute('href') || '').match(/\/([^\/]+)\.css(?:\?.*)?$/);
+				if (!m || m[1] === 'global') { continue; }
+				for (var j = 0; j < sel.options.length; j++) {
+					if (sel.options[j].value === m[1]) { found = m[1]; }
+				}
+			}
+			if (found !== '') { sel.value = found; }
+		} catch (e) {}
+	}
+	function sync5ch(){
+		var on = false;
+		try { on = localStorage.getItem('schan_5ch') === '1'; } catch (e) {}
+		fivech.checked = on;
+	}
+	function syncHover(){
+		var on = true;
+		try { on = localStorage.getItem('schan_hover') !== '0'; } catch (e) {}
+		hover.checked = on;
+	}
+	// No colours are hardcoded: the left column has no background of its own, so it simply shows
+	// the options window's background, which comes from the active theme (.reply). Headings and
+	// the active tab use the theme's own subject/title colour.
+	function syncAccent(){
+		try {
+			var p = document.createElement('span');
+			p.className = 'filetitle';
+			p.style.display = 'none';
+			document.body.appendChild(p);
+			var c = window.getComputedStyle(p).color;
+			document.body.removeChild(p);
+			if (c) { box.style.setProperty('--opt-accent', c); }
+		} catch (e) {}
+	}
+	function showTab(name){
+		var tabs = box.querySelectorAll('[data-optstab]');
+		for (var i = 0; i < tabs.length; i++) {
+			var n = tabs[i].getAttribute('data-optstab');
+			var active = (n === name);
+			tabs[i].style.color = active ? 'var(--opt-accent, inherit)' : 'inherit';
+			var panel = document.getElementById('schanPanel_' + n);
+			if (panel) { panel.style.display = active ? 'block' : 'none'; }
+		}
+		if (name === 'css') {
+			var css = '';
+			try { css = localStorage.getItem('schan_usercss') || ''; } catch (e) {}
+			cssText.value = css;
+			cssStatus.textContent = '';
+		}
+	}
+	function open(e){
+		if (e) { e.preventDefault(); }
+		syncStyle();
+		syncHover();
+		sync5ch();
+		syncAccent();
+		showTab('general');
+		box.style.display = 'block';
+	}
+	function close(e){
+		if (e) { e.preventDefault(); }
+		box.style.display = 'none';
+	}
+	link.addEventListener('click', open);
+	document.getElementById('schanOptionsClose').addEventListener('click', close);
+	box.addEventListener('click', function(e){ if (e.target === box) { close(); } });
+	document.addEventListener('keydown', function(e){ if (e.key === 'Escape' || e.keyCode === 27) { close(); } });
+	var tabLinks = box.querySelectorAll('[data-optstab]');
+	for (var t = 0; t < tabLinks.length; t++) {
+		tabLinks[t].addEventListener('click', function(e){
+			e.preventDefault();
+			showTab(this.getAttribute('data-optstab'));
+		});
+	}
+	fivech.addEventListener('change', function(){
+		try { localStorage.setItem('schan_5ch', fivech.checked ? '1' : '0'); } catch (e) {}
+		if (window.schan5chRender) { window.schan5chRender(); }
+	});
+	hover.addEventListener('change', function(){
+		try { localStorage.setItem('schan_hover', hover.checked ? '1' : '0'); } catch (e) {}
+	});
+	document.getElementById('schanUserCssSave').addEventListener('click', function(){
+		try {
+			if (cssText.value.replace(/\s+/g, '') === '') {
+				localStorage.removeItem('schan_usercss');
+			} else {
+				localStorage.setItem('schan_usercss', cssText.value);
+			}
+			if (window.schanApplyUserCSS) { window.schanApplyUserCSS(); }
+			cssStatus.textContent = 'Saved.';
+		} catch (e) {
+			cssStatus.textContent = 'Could not save (browser storage unavailable).';
+		}
+	});
+})();
+</script>
+		<div class="logo"><span class="boardslug">/o/</span> &middot; <span class="boardtitle">overboard</span><div class="boarddesc" style="font-size:0.5em;text-align:center;">Latest threads from every board</div><div class="boardbanner" style="text-align:center;margin:8px 0;"><a href="#" id="boardbanner18link" style="display:inline-block;cursor:pointer;"><img id="boardbanner18" src="" width="300" height="100" alt="Banner" style="border:0;max-width:100%;height:auto;display:block;"></a><script type="text/javascript">(function(){var banners=["/imgb/banners/banner%20test.png"];if(!banners.length){return;}var img=document.getElementById("boardbanner18");var link=document.getElementById("boardbanner18link");var current=-1;function pick(){if(banners.length===1){return 0;}var i=current;while(i===current){i=Math.floor(Math.random()*banners.length);}return i;}function show(){current=pick();img.src=banners[current];}show();link.addEventListener("click",function(e){e.preventDefault();show();return false;});})();</script></div>		</div>
+		<hr width="90%">
+		
+				<div class="postarea">
+			<form name="postform" id="postform" action="../imgboard.php" method="post" enctype="multipart/form-data">
+			<input type="hidden" name="MAX_FILE_SIZE" value="52428800">
+			<input type="hidden" name="parent" value="0"><input type="hidden" name="from_overboard" value="1">
+			<table class="postform">
+				<tbody>
+					<tr><td class="postblock">Board</td><td><select name="board" id="overboardBoard"><option value="b">/b/ - random</option><option value="f">/f/ - fileboard</option><option value="news">/news/ - news</option></select><script type="text/javascript">(function(){
+	var s=document.getElementById('overboardBoard');
+	if(!s){return;}
+	try{
+		var v=localStorage.getItem('schan_overboard_board');
+		if(v){for(var i=0;i<s.options.length;i++){if(s.options[i].value===v){s.value=v;}}}
+	}catch(e){}
+	s.addEventListener('change',function(){try{localStorage.setItem('schan_overboard_board',s.value);}catch(e){}});
+})();</script></td></tr>					<tr>
+						<td class="postblock">
+							Name
+						</td>
+						<td>
+							<input type="text" name="name" size="28" maxlength="75" accesskey="n">
+							
+						</td>
+					</tr>					<tr>
+						<td class="postblock">
+							E-mail
+						</td>
+						<td>
+							<input type="text" name="email" id="emailfield" size="28" maxlength="320" accesskey="e">
+							
+							&nbsp;&nbsp;<label style="white-space:nowrap;"><input type="checkbox" id="sagecheckbox" onclick="return toggleSage(this);">&nbsp;Sage</label>
+						</td>
+					</tr>					<tr>
+						<td class="postblock">
+							Subject
+						</td>
+						<td>
+							<input type="text" name="subject" size="40" maxlength="75" accesskey="s" autocomplete="off">
+							<input type="submit" value="Submit" accesskey="z">
+						</td>
+					</tr>					<tr>
+						<td class="postblock">
+							Message
+						</td>
+						<td>
+							<textarea id="message" name="message" cols="48" rows="4" maxlength="8000" accesskey="m"></textarea>
+							<details class="bbcodepicker"><summary>BBCode</summary><div class="bbcodebar"><button type="button" class="bbc-b" data-open="[b]" data-close="[/b]" onclick="return insertBBCode(this);">B</button><button type="button" class="bbc-slash" data-open="[/]" data-close="" onclick="return insertBBCode(this);">/</button><button type="button" class="bbc-u" data-open="[u]" data-close="[/u]" onclick="return insertBBCode(this);">U</button><button type="button" class="bbc-s" data-open="[s]" data-close="[/s]" onclick="return insertBBCode(this);">S</button><button type="button" class="bbc-spoiler" data-open="[spoiler]" data-close="[/spoiler]" onclick="return insertBBCode(this);">Spoiler</button><button type="button" class="bbc-quote" data-open="[quote]" data-close="[/quote]" onclick="return insertBBCode(this);">&quot;Quote&quot;</button><button type="button" class="bbc-scroll" data-open="[scroll]" data-close="[/scroll]" onclick="return insertBBCode(this);">Scroll</button><button type="button" class="bbc-color" data-open="[color=red]" data-close="[/color]" onclick="return insertBBCode(this);">Color</button><button type="button" class="bbc-size" data-open="[size=150]" data-close="[/size]" onclick="return insertBBCode(this);">Size</button></div></details><script type="text/javascript">function insertBBCode(el){var t=document.getElementById("message");if(!t){return false;}var o=el.getAttribute("data-open")||"";var c=el.getAttribute("data-close")||"";var a=t.selectionStart,b=t.selectionEnd;if(typeof a==="number"){var sel=t.value.substring(a,b);var ins=o+sel+c;t.value=t.value.substring(0,a)+ins+t.value.substring(b);t.selectionStart=a+o.length;t.selectionEnd=a+o.length+sel.length;}else{t.value+=o+c;}t.focus();return false;}</script><style>.emojipicker summary{cursor:pointer;font-size:1.1em;margin:6px 0 4px 0;}.emojipicker .emojigrid{display:flex;flex-wrap:wrap;gap:3px;max-width:520px;max-height:300px;overflow-y:auto;padding:2px 0;}.emojipicker .emojigrid a{display:flex;align-items:center;justify-content:center;width:48px;height:48px;background:rgba(0,0,0,0.08);border:1px solid rgba(0,0,0,0.25);border-radius:2px;}.emojipicker .emojigrid a:hover{background:rgba(0,0,0,0.2);}.emojipicker .emojigrid img{max-width:40px;max-height:40px;width:auto;height:auto;border:0;}</style><details class="emojipicker"><summary>Emoji</summary><div class="emojigrid"><a href="#" onclick="return insertEmoji('broken');" title=":broken:"><img src="/imgb/emoji/broken.webp" alt=":broken:"></a><a href="#" onclick="return insertEmoji('tes');" title=":tes:"><img src="/imgb/emoji/tes.png" alt=":tes:"></a><a href="#" onclick="return insertEmoji('test');" title=":test:"><img src="/imgb/emoji/test.jpg" alt=":test:"></a></div></details><script type="text/javascript">function insertEmoji(n){var t=document.getElementById("message");if(!t){return false;}var s=":"+n+":";var a=t.selectionStart,b=t.selectionEnd;if(typeof a==="number"){t.value=t.value.substring(0,a)+s+t.value.substring(b);t.selectionStart=t.selectionEnd=a+s.length;}else{t.value+=s;}t.focus();return false;}</script><style>.kaomojipicker summary{cursor:pointer;font-size:1.1em;margin:6px 0 4px 0;}.kaomojipicker .kaomojigrid{display:flex;flex-wrap:wrap;gap:3px;max-width:520px;max-height:300px;overflow-y:auto;padding:2px 0;}.kaomojipicker .kaomojigrid a{display:inline-block;padding:2px 8px;background:rgba(0,0,0,0.08);border:1px solid rgba(0,0,0,0.25);border-radius:2px;font-size:1.3em;line-height:1.4;text-decoration:none;color:inherit;white-space:nowrap;}.kaomojipicker .kaomojigrid a:hover{background:rgba(0,0,0,0.2);}</style><details class="kaomojipicker"><summary>Kaomoji</summary><div class="kaomojigrid"><a href="#" data-k="ヽ(´ー｀)ノ" onclick="return insertKaomoji(this);">ヽ(´ー｀)ノ</a><a href="#" data-k="(;´Д`)" onclick="return insertKaomoji(this);">(;´Д`)</a><a href="#" data-k="ヽ(´▽`)ノ" onclick="return insertKaomoji(this);">ヽ(´▽`)ノ</a><a href="#" data-k="(´人｀)" onclick="return insertKaomoji(this);">(´人｀)</a><a href="#" data-k="(^Д^)" onclick="return insertKaomoji(this);">(^Д^)</a><a href="#" data-k="(´ー`)" onclick="return insertKaomoji(this);">(´ー`)</a><a href="#" data-k="( ´,_ゝ`)" onclick="return insertKaomoji(this);">( ´,_ゝ`)</a><a href="#" data-k="(´～`)" onclick="return insertKaomoji(this);">(´～`)</a><a href="#" data-k="(;ﾟДﾟ)" onclick="return insertKaomoji(this);">(;ﾟДﾟ)</a><a href="#" data-k="(;ﾟ∀ﾟ)" onclick="return insertKaomoji(this);">(;ﾟ∀ﾟ)</a><a href="#" data-k="┐(ﾟ～ﾟ)┌" onclick="return insertKaomoji(this);">┐(ﾟ～ﾟ)┌</a><a href="#" data-k="ヽ(`Д´)ノ" onclick="return insertKaomoji(this);">ヽ(`Д´)ノ</a><a href="#" data-k="( ´ω`)" onclick="return insertKaomoji(this);">( ´ω`)</a><a href="#" data-k="(ﾟー｀)" onclick="return insertKaomoji(this);">(ﾟー｀)</a><a href="#" data-k="(・∀・)" onclick="return insertKaomoji(this);">(・∀・)</a><a href="#" data-k="(⌒▽⌒ゞ)" onclick="return insertKaomoji(this);">(⌒▽⌒ゞ)</a><a href="#" data-k="(ﾟ血ﾟ#)" onclick="return insertKaomoji(this);">(ﾟ血ﾟ#)</a><a href="#" data-k="(ﾟ-ﾟ)" onclick="return insertKaomoji(this);">(ﾟ-ﾟ)</a><a href="#" data-k="(´¬`)" onclick="return insertKaomoji(this);">(´¬`)</a><a href="#" data-k="(´π｀)" onclick="return insertKaomoji(this);">(´π｀)</a><a href="#" data-k="ヽ(ﾟρﾟ)ノ" onclick="return insertKaomoji(this);">ヽ(ﾟρﾟ)ノ</a><a href="#" data-k="Σ(;ﾟДﾟ)" onclick="return insertKaomoji(this);">Σ(;ﾟДﾟ)</a><a href="#" data-k="Σ(ﾟдﾟ|||)" onclick="return insertKaomoji(this);">Σ(ﾟдﾟ|||)</a><a href="#" data-k="ｷﾀ━━━(・∀・)━━━!!" onclick="return insertKaomoji(this);">ｷﾀ━━━(・∀・)━━━!!</a><a href="#" data-k="(*ﾟ∀ﾟ)" onclick="return insertKaomoji(this);">(*ﾟ∀ﾟ)</a><a href="#" data-k="(￣ー￣)" onclick="return insertKaomoji(this);">(￣ー￣)</a><a href="#" data-k="＼(ˆoˆ)／" onclick="return insertKaomoji(this);">＼(ˆoˆ)／</a><a href="#" data-k="(´・ω・`)" onclick="return insertKaomoji(this);">(´・ω・`)</a><a href="#" data-k="(σ・∀・)σ" onclick="return insertKaomoji(this);">(σ・∀・)σ</a><a href="#" data-k="(*^ーﾟ)b" onclick="return insertKaomoji(this);">(*^ーﾟ)b</a><a href="#" data-k="(-___-)" onclick="return insertKaomoji(this);">(-___-)</a><a href="#" data-k="(=ﾟωﾟ)ﾉ" onclick="return insertKaomoji(this);">(=ﾟωﾟ)ﾉ</a><a href="#" data-k="(・A・)" onclick="return insertKaomoji(this);">(・A・)</a><a href="#" data-k="(　´∀｀)つ" onclick="return insertKaomoji(this);">(　´∀｀)つ</a><a href="#" data-k="(@^▽^)/" onclick="return insertKaomoji(this);">(@^▽^)/</a></div></details><script type="text/javascript">function insertKaomoji(e){var t=document.getElementById("message");if(!t){return false;}var s=e.getAttribute("data-k");var a=t.selectionStart,b=t.selectionEnd;if(typeof a==="number"){t.value=t.value.substring(0,a)+s+t.value.substring(b);t.selectionStart=t.selectionEnd=a+s.length;}else{t.value+=s;}t.focus();return false;}</script>
+						</td>
+					</tr>					<tr>
+						<td class="postblock">
+							Poll
+						</td>
+						<td>
+							<details class="pollform">
+								<summary style="cursor:pointer;">Add a poll</summary>
+								<div id="pollopts"><input type="text" name="poll[]" size="28" maxlength="60" placeholder="Option 1" autocomplete="off"><br><input type="text" name="poll[]" size="28" maxlength="60" placeholder="Option 2" autocomplete="off"><br></div>
+								<a href="#" onclick="return pollAddOption();">+ Add option</a> <small>(2-8 options, one vote per IP)</small>
+							</details>
+						</td>
+					</tr><tr><td class="postblock">Flag</td><td><select name="meme_flag" onchange="try{localStorage.setItem('schan_memeflag',this.value)}catch(e){}"><option value="">None</option><option value="niggered">niggered</option><option value="ssnp">ssnp</option></select><script>(function(){try{var s=document.currentScript.previousElementSibling,v=localStorage.getItem('schan_memeflag');if(v){s.value=v;if(s.value!==v){s.value='';}}}catch(e){}})();</script></td></tr>					
+										<tr>
+						<td class="postblock">
+							File
+						</td>
+						<td>
+							<input type="file" name="files[]" multiple size="35" accesskey="f"><div class="filelist"></div><script>(function(){
+var s=document.currentScript,list=s.previousElementSibling,inp=list.previousElementSibling,max=4,dt,sps=[];
+try{dt=new DataTransfer();}catch(e){return;}
+function mk(t){return document.createElement(t);}
+var btn=mk('input'),st=mk('span'),wrap=mk('span');
+btn.type='button';btn.value='Browse...';btn.accessKey='f';
+btn.onclick=function(){inp.click();};
+wrap.appendChild(btn);wrap.appendChild(document.createTextNode(' '));wrap.appendChild(st);
+inp.style.display='none';inp.parentNode.insertBefore(wrap,inp);
+function upd(){var n=dt.files.length;st.textContent=n===0?'No file selected':(n===1?'1 file selected':n+' files selected');}
+upd();
+function shortName(n){var c=Array.from(n);return c.length>10?'...'+c.slice(-10).join(''):n;}
+function mkFile(f,name){try{return new File([f],name,{type:f.type,lastModified:f.lastModified});}catch(e){alert('Your browser cannot rename files.');return f;}}
+function setFiles(n){dt=n;inp.files=dt.files;render();}
+function render(){
+	upd();
+	list.innerHTML='';
+	for(var i=0;i<dt.files.length;i++){(function(i){
+		var f=dt.files[i],row=mk('div'),x=mk('a'),box=mk('span'),nm=mk('span'),sp=mk('label'),spcb=mk('input'),ed=mk('a');
+		row.style.cssText='display:flex;align-items:center;gap:8px;margin:3px 0;';
+		x.href='#';x.textContent='X';x.title='Remove';x.style.cssText='text-decoration:none;font-weight:bold;';
+		x.onclick=function(e){e.preventDefault();var n=new DataTransfer();for(var j=0;j<dt.files.length;j++){if(j!==i){n.items.add(dt.files[j]);}}sps.splice(i,1);setFiles(n);};
+		box.style.cssText='display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;overflow:hidden;font-size:11px;background:rgba(128,128,128,.25);';
+		if(f.type.indexOf('image/')===0){var im=mk('img');im.style.cssText='max-width:48px;max-height:48px;';im.onload=function(){URL.revokeObjectURL(im.src);};im.src=URL.createObjectURL(f);box.appendChild(im);}
+		else{box.textContent=(f.name.split('.').pop()||'file').toUpperCase().slice(0,5);}
+		nm.textContent=shortName(f.name);nm.title=f.name;nm.style.wordBreak='break-all';
+		spcb.type='checkbox';spcb.name='spoiler_files[]';spcb.value=String(i);spcb.style.marginRight='3px';spcb.checked=!!sps[i];
+		spcb.onchange=function(){sps[i]=spcb.checked;};
+		sp.appendChild(spcb);sp.appendChild(document.createTextNode(' Spoiler'));
+		sp.style.cssText='white-space:nowrap;font-size:11px;';
+		ed.href='#';ed.textContent='Edit';ed.title='Edit file name';ed.style.cssText='white-space:nowrap;font-size:11px;';
+		ed.onclick=function(e){e.preventDefault();var nn=prompt('File name:',f.name);if(nn===null){return;}nn=nn.replace(/[\/\\]/g,'').trim();if(nn===''||nn===f.name){return;}var n=new DataTransfer();for(var j=0;j<dt.files.length;j++){n.items.add(j===i?mkFile(dt.files[j],nn):dt.files[j]);}setFiles(n);};
+		row.appendChild(x);row.appendChild(box);row.appendChild(nm);row.appendChild(sp);row.appendChild(ed);list.appendChild(row);
+	})(i);}
+}
+inp.addEventListener('change',function(){
+	var n=new DataTransfer(),j,over=false;
+	for(j=0;j<dt.files.length;j++){n.items.add(dt.files[j]);}
+	for(j=0;j<inp.files.length;j++){if(n.files.length<max){n.items.add(inp.files[j]);sps.push(false);}else{over=true;}}
+	if(over){alert('You can attach up to '+max+' files.');}
+	setFiles(n);
+});
+if(inp.form){inp.form.addEventListener('reset',function(){dt=new DataTransfer();sps=[];list.innerHTML='';upd();});}
+})();</script><small>You can attach up to 4 files.</small>
+						</td>
+					</tr>
+										<tr>
+						<td class="postblock">
+							Embed
+						</td>
+						<td>
+							<input type="text" name="embed" size="28" accesskey="x" autocomplete="off">&nbsp;&nbsp;(paste a YouTube URL)
+						</td>
+					</tr>
+					<tr><td class="postblock">Oekaki</td><td><a href="#" class="oek-toggle" style="text-decoration:none;">&#9656; Draw an image</a>
+<div class="oek-box" style="display:none;margin-top:6px;">
+	<div class="oek-setup">
+		Canvas size: <input type="number" class="oek-w" value="400" min="50" max="800" style="width:60px;"> &times; <input type="number" class="oek-h" value="300" min="50" max="800" style="width:60px;">
+		<input type="button" class="oek-start" value="Start">
+	</div>
+	<div class="oek-tools" style="display:none;">
+		<div class="oek-wpaint" style="position:relative;margin-top:56px;border:1px solid #000;background:#fff;"></div>
+		<div style="margin-top:6px;"><input type="button" class="oek-attach" value="Attach to post"> <input type="button" class="oek-clear" value="Clear"></div>
+	</div>
+	<div class="oek-status" style="font-size:smaller;margin-top:4px;"></div>
+</div>
+<script>
+(function(){
+var root=document.currentScript.parentNode,base="\/imgb\/js\/wPaint-master\/";
+var toggle=root.querySelector('.oek-toggle'),box=root.querySelector('.oek-box'),wEl=root.querySelector('.oek-wpaint'),
+	wIn=root.querySelector('.oek-w'),hIn=root.querySelector('.oek-h'),startBtn=root.querySelector('.oek-start'),
+	setup=root.querySelector('.oek-setup'),tools=root.querySelector('.oek-tools'),attachBtn=root.querySelector('.oek-attach'),
+	clearBtn=root.querySelector('.oek-clear'),status=root.querySelector('.oek-status');
+var form=root;while(form&&form.nodeName!=='FORM'){form=form.parentNode;}
+var started=false;
+function say(t){status.textContent=t;}
+function clamp(v,a,b){v=parseInt(v,10);if(isNaN(v)){v=400;}return Math.max(a,Math.min(b,v));}
+function loadScript(src,done){var s=document.createElement('script');s.src=src;s.onload=function(){done(true);};s.onerror=function(){done(false);};document.head.appendChild(s);}
+function loadCss(href){var l=document.createElement('link');l.rel='stylesheet';l.href=href;document.head.appendChild(l);}
+// wPaint (and the jQuery UI / colour picker it needs) is loaded the first time it is used.
+// It gets its own copy of jQuery so it works whatever version the page uses.
+function loadAll(cb){
+	if(window.schanWPaint){cb(window.schanWPaint);return;}
+	if(window.schanWPaintQueue){window.schanWPaintQueue.push(cb);return;}
+	window.schanWPaintQueue=[cb];
+	loadCss(base+'lib/wColorPicker.min.css');loadCss(base+'wPaint.min.css');
+	var list=['lib/jquery.1.10.2.min.js','lib/jquery.ui.core.1.10.3.min.js','lib/jquery.ui.widget.1.10.3.min.js','lib/jquery.ui.mouse.1.10.3.min.js','lib/jquery.ui.draggable.1.10.3.min.js','lib/wColorPicker.min.js','wPaint.min.js','plugins/main/wPaint.menu.main.min.js','plugins/text/wPaint.menu.text.min.js','plugins/shapes/wPaint.menu.main.shapes.min.js'];
+	var usedOwn=false;
+	function finish(){
+		var jq=window.jQuery;
+		if(usedOwn&&jq&&jq.noConflict){jq=jq.noConflict(true);}
+		var q=window.schanWPaintQueue;window.schanWPaintQueue=null;
+		window.schanWPaint=(jq&&jq.fn&&jq.fn.wPaint)?jq:null;
+		for(var i=0;i<q.length;i++){q[i](window.schanWPaint);}
+		if(!window.schanWPaint){window.schanWPaint=undefined;}
+	}
+	function step(i){
+		if(i>=list.length){finish();return;}
+		loadScript(base+list[i],function(ok){if(i===0&&ok){usedOwn=true;}step(i+1);});
+	}
+	step(0);
+}
+function toFile(u,name){
+	var p=u.split(','),mime=(p[0].match(/:(.*?);/)||[])[1]||'image/png',bin=atob(p[1]),n=bin.length,a=new Uint8Array(n);
+	while(n--){a[n]=bin.charCodeAt(n);}
+	return new File([a],name,{type:mime});
+}
+toggle.onclick=function(e){
+	e.preventDefault();
+	var open=box.style.display==='none';
+	box.style.display=open?'block':'none';
+	toggle.innerHTML=(open?'&#9662; ':'&#9656; ')+toggle.textContent.replace(/^\s*\S\s*/,'');
+};
+startBtn.onclick=function(){
+	var w=clamp(wIn.value,50,800),h=clamp(hIn.value,50,800);
+	say('Loading...');
+	loadAll(function($j){
+		if(!$j){say('Could not load wPaint. Check that js/wPaint-master is uploaded.');return;}
+		wEl.style.width=w+'px';wEl.style.height=h+'px';
+		tools.style.display='block';setup.style.display='none';
+		try{$j(wEl).wPaint({path:base,bg:'#ffffff',menuOffsetLeft:0,menuOffsetTop:-50});started=true;say('');}
+		catch(err){tools.style.display='none';setup.style.display='block';say('wPaint failed to start.');}
+	});
+};
+clearBtn.onclick=function(){
+	if(!started||!window.schanWPaint){return;}
+	try{window.schanWPaint(wEl).wPaint('clear');}catch(e){}
+};
+attachBtn.onclick=function(){
+	if(!started||!window.schanWPaint){return;}
+	var data;
+	try{data=window.schanWPaint(wEl).wPaint('image');}catch(e){data=null;}
+	if(typeof data!=='string'||data.length<100){say('Nothing to attach yet.');return;}
+	if(data.indexOf('data:')!==0){data='data:image/png;base64,'+data;}
+	var inp=form?form.querySelector('input[type=file]'):null;
+	if(!inp){say('This form has no file field.');return;}
+	try{
+		var file=toFile(data,'oekaki-'+Date.now()+'.png'),d=new DataTransfer();
+		d.items.add(file);inp.files=d.files;
+		inp.dispatchEvent(new Event('change',{bubbles:true}));
+		var ok=false;for(var i=0;i<inp.files.length;i++){if(inp.files[i].name===file.name){ok=true;}}
+		say(ok?('Attached '+file.name+' to your post.'):'Could not attach it (file limit reached?).');
+	}catch(err){say('Your browser cannot attach the drawing automatically.');}
+};
+})();
+</script></td></tr>					<tr>
+						<td class="postblock">
+							Password
+						</td>
+						<td>
+							<input type="password" name="password" id="newpostpassword" size="8" accesskey="p">&nbsp;&nbsp;(for post and file deletion)
+						</td>
+					</tr>					<tr>
+						<td colspan="2" class="rules">
+							
+							<ul>
+								
+								<li>Supported file types are JPG, PNG, GIF, SWF, AAC, FLAC, OGG, OPUS, MP3, MP4, WAV and WEBM.</li>
+								<li>Maximum file size allowed is 50 MB.</li>
+								<li>Images greater than 250x250 will be thumbnailed.</li>
+								<li>Currently 1 unique user posts.</li>
+
+							</ul>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			</form>
+		</div><hr>
+		<div class="globalmessage" style="text-align:center;font-weight:bold;margin:6px 0;"><span class="filetitle">testy test</span></div><hr>
+		<script type="text/javascript">var enablebacklinks = true;var liveUpdateDelay = 10;</script><script type="text/javascript">
+(function(){
+if(!window.fetch||!window.DOMParser||typeof liveUpdateDelay==='undefined'||!(liveUpdateDelay>0)){return;}
+var box=null,timer=null,busy=false,stopped=false,unread=0,baseTitle='',lastAdded=0;
+var isThread=/\/res\/\d+\.html$/.test(location.pathname);
+var isCatalog=/catalog\.html$/.test(location.pathname);
+
+/* "(3) Thread title" in the tab while the tab is hidden and new replies arrive */
+function setTitle(){document.title=unread>0?'('+unread+') '+baseTitle:baseTitle;}
+function nodeId(n){
+	if(!n||n.nodeType!==1){return null;}
+	if(n.nodeName==='DIV'&&n.classList.contains('op')){return n.id;}
+	var td=n.querySelector?n.querySelector('td.reply[id^="post"]'):null;
+	return td?td.id:null;
+}
+function anchorStart(){
+	if((window.pageYOffset||0)<=5){return null;}
+	for(var n=box.firstElementChild;n;n=n.nextElementSibling){
+		var r=n.getBoundingClientRect();
+		if(r.bottom>0){return {el:n,top:r.top};}
+	}
+	return null;
+}
+function anchorEnd(a){
+	if(!a||!document.body.contains(a.el)){return;}
+	var d=a.el.getBoundingClientRect().top-a.top;
+	if(d){window.scrollBy(0,d);}
+}
+
+/* ---- thread page: add new replies, drop deleted ones, refresh backlinks ---- */
+function updateThread(src){
+	var have={},want={},add=[],n,id,changed=false,i;
+	for(n=box.firstElementChild;n;n=n.nextElementSibling){id=nodeId(n);if(id){have[id]=n;}}
+	for(n=src.firstElementChild;n;n=n.nextElementSibling){
+		id=nodeId(n);
+		if(!id){continue;}
+		want[id]=n;
+		if(!have[id]){add.push(n);}
+	}
+	for(id in have){
+		if(have.hasOwnProperty(id)&&!want[id]){box.removeChild(have[id]);changed=true;}
+	}
+	lastAdded=add.length;
+	for(i=0;i<add.length;i++){box.appendChild(document.importNode(add[i],true));changed=true;}
+	for(n=box.firstElementChild;n;n=n.nextElementSibling){if(n.classList&&n.classList.contains('threadstats')){box.appendChild(n);break;}}
+	var nb=src.querySelectorAll('span.backlinks');
+	for(i=0;i<nb.length;i++){
+		var cb=nb[i].id?document.getElementById(nb[i].id):null;
+		if(cb&&cb.innerHTML!==nb[i].innerHTML){cb.innerHTML=nb[i].innerHTML;changed=true;}
+	}
+	return changed;
+}
+
+/* ---- index / overboard page: swap in the threads that changed and re-order ---- */
+function groupsOf(root){
+	var groups=[],cur=null,n;
+	for(n=root.firstElementChild;n;n=n.nextElementSibling){
+		if(n.nodeName==='HR'){cur=null;continue;}
+		if(n.nodeName==='DIV'&&n.classList.contains('op')){cur={id:n.id,nodes:[],sig:''};groups.push(cur);}
+		else if(!cur){cur={id:'x'+groups.length,nodes:[],sig:''};groups.push(cur);}
+		cur.nodes.push(n);
+		cur.sig+=(nodeId(n)||n.className||n.nodeName)+':'+(n.textContent||'').length+';';
+	}
+	return groups;
+}
+function updateIndex(src){
+	var cur=groupsOf(box),nw=groupsOf(src),i,cs=[],ns=[],byId={};
+	for(i=0;i<cur.length;i++){cs.push(cur[i].id+'|'+cur[i].sig);byId[cur[i].id]=cur[i];}
+	for(i=0;i<nw.length;i++){ns.push(nw[i].id+'|'+nw[i].sig);}
+	if(cs.join('~')===ns.join('~')){return false;}
+	var a=anchorStart(),frag=document.createDocumentFragment();
+	for(i=0;i<nw.length;i++){
+		if(i>0){frag.appendChild(document.createElement('hr'));}
+		var old=byId[nw[i].id],j;
+		if(old&&old.sig===nw[i].sig){
+			for(j=0;j<old.nodes.length;j++){frag.appendChild(old.nodes[j]);}
+		}else{
+			for(j=0;j<nw[i].nodes.length;j++){frag.appendChild(document.importNode(nw[i].nodes[j],true));}
+		}
+	}
+	while(box.firstChild){box.removeChild(box.firstChild);}
+	box.appendChild(frag);
+	anchorEnd(a);
+	return true;
+}
+
+/* ---- catalog ---- */
+function catalogSig(root){
+	var a=root.querySelectorAll('.catalogpost'),s=[];
+	for(var i=0;i<a.length;i++){
+		var l=a[i].querySelector('a');
+		s.push((l?l.getAttribute('href'):'')+':'+(a[i].textContent||'').replace(/\s+/g,' ').trim());
+	}
+	return s.join('|');
+}
+function updateCatalog(src){
+	if(catalogSig(src)===catalogSig(box)){return false;}
+	box.innerHTML=src.innerHTML;
+	return true;
+}
+
+/* Page-number / Next / Previous buttons */
+function syncNav(doc){
+	var a=document.querySelectorAll('body > table[border="1"]'),b=doc.querySelectorAll('body > table[border="1"]');
+	if(!a.length||a.length!==b.length){return;}
+	for(var i=0;i<a.length;i++){
+		if(a[i].outerHTML!==b[i].outerHTML){a[i].outerHTML=b[i].outerHTML;}
+	}
+}
+
+function after(){
+	if(window.pollInit){try{pollInit();}catch(e){}}
+	if(window.schan5chRender){try{window.schan5chRender();}catch(e){}}
+	try{document.dispatchEvent(new CustomEvent('schan:updated'));}catch(e){}
+}
+function schedule(){
+	if(stopped){return;}
+	clearTimeout(timer);
+	timer=setTimeout(tick,liveUpdateDelay*1000);
+}
+function tick(){
+	if(stopped){return;}
+	if(busy||(document.hidden&&!isThread)){schedule();return;}
+	busy=true;
+	fetch(location.pathname+location.search,{cache:'no-cache',credentials:'same-origin'}).then(function(r){
+		if(r.status===404){stopped=true;throw new Error('gone');}
+		if(!r.ok){throw new Error('http');}
+		return r.text();
+	}).then(function(t){
+		var doc=new DOMParser().parseFromString(t,'text/html'),src=doc.getElementById('posts');
+		if(!src){return;}
+		lastAdded=0;
+		var changed=isThread?updateThread(src):(isCatalog||box.querySelector('.catalogpost')?updateCatalog(src):updateIndex(src));
+		if(isThread&&document.hidden&&lastAdded>0){unread+=lastAdded;setTitle();}
+		syncNav(doc);
+		if(changed){after();}
+	}).catch(function(){}).then(function(){busy=false;schedule();});
+}
+function init(){
+	box=document.getElementById('posts');
+	if(!box){return;}
+	baseTitle=document.title.replace(/^\(\d+\)\s*/,'');
+	document.addEventListener('visibilitychange',function(){
+		if(!document.hidden){unread=0;setTitle();}
+		if(!document.hidden&&!stopped&&!busy){clearTimeout(timer);tick();}
+	});
+	schedule();
+}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}
+})();
+</script>
+				
+		<form id="delform" action="../imgboard.php?delete" method="post">
+		<input type="hidden" name="board" value="o">
+		<div id="posts">
+		<div id="post5" class="op"><span class="filesize">File: <a href="/imgb/b/src/1791130617177.gif" target="_blank" onclick="return expandFile(event, '5');">...t alot.gif</a>&ndash;(410.42KB, 720x480)</span><br><div id="thumbfile5"><a href="/imgb/b/src/1791130617177.gif" target="_blank" onclick="return expandFile(event, '5');">
+	<img src="/imgb/spoiler.png" alt="5" class="thumb" id="thumbnail5" width="140" height="50" data-spoiler="1">
+</a></div><div id="expand5" style="display: none;">%3Ca%20href%3D%22%2Fimgb%2Fb%2Fsrc%2F1791130617177.gif%22%20onclick%3D%22return%20expandFile%28event%2C%20%275%27%29%3B%22%3E%3Cimg%20src%3D%22%2Fimgb%2Fb%2Fsrc%2F1791130617177.gif%22%20width%3D%22720%22%20style%3D%22min-width%3A%20250px%3Bmin-height%3A%20167px%3Bmax-width%3A%2085vw%3Bheight%3A%20auto%3B%22%3E%3C%2Fa%3E</div>
+<div id="file5" class="thumb" style="display: none;"></div><a id="5"></a>
+<label>
+	<input type="checkbox" name="delete[]" value="b:5"> <span class="boardtag">[<a href="/imgb/b/">b</a>]</span> <span class="postername">Anonymous</span> 26/10/04(Sun)16:16:57
+</label>
+<span class="reflink">
+	<a href="/imgb/b/res/5.html#5">No.</a><a href="/imgb/b/res/5.html#q5">5</a>
+</span>&nbsp;[<a href="/imgb/b/res/5.html">Reply</a>] <small><span id="backlinks5" class="backlinks"></span></small><div class="message">
+test<br>
+</div></div>
+<hr><div id="post1" class="op"><span class="filesize">File: <a href="/imgb/f/src/1791116439767.gif" target="_blank" onclick="return expandFile(event, '1');">...t alot.gif</a>&ndash;(410.42KB, 720x480)</span><br><div id="thumbfile1"><a href="/imgb/f/src/1791116439767.gif" target="_blank" onclick="return expandFile(event, '1');">
+	<img src="/imgb/f/thumb/1791116439767s.gif" alt="1" class="thumb" id="thumbnail1" width="250" height="167">
+</a></div><div id="expand1" style="display: none;">%3Ca%20href%3D%22%2Fimgb%2Ff%2Fsrc%2F1791116439767.gif%22%20onclick%3D%22return%20expandFile%28event%2C%20%271%27%29%3B%22%3E%3Cimg%20src%3D%22%2Fimgb%2Ff%2Fsrc%2F1791116439767.gif%22%20width%3D%22720%22%20style%3D%22min-width%3A%20250px%3Bmin-height%3A%20167px%3Bmax-width%3A%2085vw%3Bheight%3A%20auto%3B%22%3E%3C%2Fa%3E</div>
+<div id="file1" class="thumb" style="display: none;"></div><a id="1"></a>
+<label>
+	<input type="checkbox" name="delete[]" value="f:1"> <span class="boardtag">[<a href="/imgb/f/">f</a>]</span> <span class="postername">Anonymous</span> <img class="flag meme-flag" src="/imgb/static/meme-flags/ssnp.jpg" alt="ssnp" title="ssnp" style="height:11px;width:auto;vertical-align:baseline;border:0;"> 26/10/04(Sun)12:20:39
+</label>
+<span class="reflink">
+	<a href="/imgb/f/res/1.html#1">No.</a><a href="/imgb/f/res/1.html#q1">1</a>
+</span>&nbsp;[<a href="/imgb/f/res/1.html">Reply</a>] <small><span id="backlinks1" class="backlinks"></span></small><div class="message">
+test<br>
+</div></div>
+<hr><div id="post4" class="op"><span class="filesize">File: <a href="/imgb/b/src/1791115244483.gif" target="_blank" onclick="return expandFile(event, '4');">...-dance.gif</a>&ndash;(724.49KB, 536x706)</span><br><div id="thumbfile4"><a href="/imgb/b/src/1791115244483.gif" target="_blank" onclick="return expandFile(event, '4');">
+	<img src="/imgb/b/thumb/1791115244483s.gif" alt="4" class="thumb" id="thumbnail4" width="190" height="250">
+</a></div><div id="expand4" style="display: none;">%3Ca%20href%3D%22%2Fimgb%2Fb%2Fsrc%2F1791115244483.gif%22%20onclick%3D%22return%20expandFile%28event%2C%20%274%27%29%3B%22%3E%3Cimg%20src%3D%22%2Fimgb%2Fb%2Fsrc%2F1791115244483.gif%22%20width%3D%22536%22%20style%3D%22min-width%3A%20190px%3Bmin-height%3A%20250px%3Bmax-width%3A%2085vw%3Bheight%3A%20auto%3B%22%3E%3C%2Fa%3E</div>
+<div id="file4" class="thumb" style="display: none;"></div><a id="4"></a>
+<label>
+	<input type="checkbox" name="delete[]" value="b:4"> <span class="boardtag">[<a href="/imgb/b/">b</a>]</span> <span class="postername">Anonymous</span> <img class="flag meme-flag" src="/imgb/static/meme-flags/ssnp.jpg" alt="ssnp" title="ssnp" style="height:11px;width:auto;vertical-align:baseline;border:0;"> 26/10/04(Sun)12:00:44
+</label>
+<span class="reflink">
+	<a href="/imgb/b/res/4.html#4">No.</a><a href="/imgb/b/res/4.html#q4">4</a>
+</span>&nbsp;[<a href="/imgb/b/res/4.html">Reply</a>] <small><span id="backlinks4" class="backlinks"></span></small><div class="message">
+test<br>
+</div></div>
+<hr><div id="post3" class="op"><span class="filesize">File: <a href="/imgb/b/src/1791114971491.gif" target="_blank" onclick="return expandFile(event, '3');">maya.gif</a>&ndash;(73.45KB, 119x249)</span><br><div id="thumbfile3"><a href="/imgb/b/src/1791114971491.gif" target="_blank" onclick="return expandFile(event, '3');">
+	<img src="/imgb/b/thumb/1791114971491s.gif" alt="3" class="thumb" id="thumbnail3" width="119" height="249">
+</a></div><div id="expand3" style="display: none;">%3Ca%20href%3D%22%2Fimgb%2Fb%2Fsrc%2F1791114971491.gif%22%20onclick%3D%22return%20expandFile%28event%2C%20%273%27%29%3B%22%3E%3Cimg%20src%3D%22%2Fimgb%2Fb%2Fsrc%2F1791114971491.gif%22%20width%3D%22119%22%20style%3D%22min-width%3A%20119px%3Bmin-height%3A%20249px%3Bmax-width%3A%2085vw%3Bheight%3A%20auto%3B%22%3E%3C%2Fa%3E</div>
+<div id="file3" class="thumb" style="display: none;"></div><a id="3"></a>
+<label>
+	<input type="checkbox" name="delete[]" value="b:3"> <span class="boardtag">[<a href="/imgb/b/">b</a>]</span> <span class="postername">Anonymous</span> <img class="flag meme-flag" src="/imgb/static/meme-flags/ssnp.jpg" alt="ssnp" title="ssnp" style="height:11px;width:auto;vertical-align:baseline;border:0;"> 26/10/04(Sun)11:56:11
+</label>
+<span class="reflink">
+	<a href="/imgb/b/res/3.html#3">No.</a><a href="/imgb/b/res/3.html#q3">3</a>
+</span>&nbsp;[<a href="/imgb/b/res/3.html">Reply</a>] <small><span id="backlinks3" class="backlinks"></span></small><div class="message">
+test<br>
+</div></div>
+<hr><div id="post1" class="op"><span class="filesize">File: <a href="/imgb/b/src/1791114941047.png" target="_blank" onclick="return expandFile(event, '1');">...RYSONC.png</a>&ndash;(1.02MB, 1280x720)</span><br><div id="thumbfile1"><a href="/imgb/b/src/1791114941047.png" target="_blank" onclick="return expandFile(event, '1');">
+	<img src="/imgb/b/thumb/1791114941047s.png" alt="1" class="thumb" id="thumbnail1" width="250" height="141">
+</a></div><div id="expand1" style="display: none;">%3Ca%20href%3D%22%2Fimgb%2Fb%2Fsrc%2F1791114941047.png%22%20onclick%3D%22return%20expandFile%28event%2C%20%271%27%29%3B%22%3E%3Cimg%20src%3D%22%2Fimgb%2Fb%2Fsrc%2F1791114941047.png%22%20width%3D%221280%22%20style%3D%22min-width%3A%20250px%3Bmin-height%3A%20141px%3Bmax-width%3A%2085vw%3Bheight%3A%20auto%3B%22%3E%3C%2Fa%3E</div>
+<div id="file1" class="thumb" style="display: none;"></div><a id="1"></a>
+<label>
+	<input type="checkbox" name="delete[]" value="b:1"> <span class="boardtag">[<a href="/imgb/b/">b</a>]</span> <span class="postername">Anonymous</span> <img class="flag meme-flag" src="/imgb/static/meme-flags/ssnp.jpg" alt="ssnp" title="ssnp" style="height:11px;width:auto;vertical-align:baseline;border:0;"> 26/10/04(Sun)11:55:41
+</label>
+<span class="reflink">
+	<a href="/imgb/b/res/1.html#1">No.</a><a href="/imgb/b/res/1.html#q1">1</a>
+</span>&nbsp;[<a href="/imgb/b/res/1.html">Reply</a>] <small><span id="backlinks1" class="backlinks"></span></small><div class="message">
+test<br>
+</div></div><table>
+<tbody>
+<tr>
+<td class="doubledash">
+	&#0168;
+</td>
+<td class="reply" id="post2"><a id="2"></a>
+<label>
+	<input type="checkbox" name="delete[]" value="b:2"> <span class="boardtag">[<a href="/imgb/b/">b</a>]</span> <span class="postername">Anonymous</span> <img class="flag meme-flag" src="/imgb/static/meme-flags/ssnp.jpg" alt="ssnp" title="ssnp" style="height:11px;width:auto;vertical-align:baseline;border:0;"> 26/10/04(Sun)11:55:57
+</label>
+<span class="reflink">
+	<a href="/imgb/b/res/1.html#2">No.</a><a href="/imgb/b/res/1.html#q2">2</a>
+</span> <small><span id="backlinks2" class="backlinks"></span></small><br><span class="filesize"><a href="/imgb/b/src/1791114957571.jpg" target="_blank" onclick="return expandFile(event, '2');">god.jpg</a>&ndash;(73.96KB, 500x917)</span><br><div id="thumbfile2"><a href="/imgb/b/src/1791114957571.jpg" target="_blank" onclick="return expandFile(event, '2');">
+	<img src="/imgb/b/thumb/1791114957571s.jpg" alt="2" class="thumb" id="thumbnail2" width="136" height="250">
+</a></div><div id="expand2" style="display: none;">%3Ca%20href%3D%22%2Fimgb%2Fb%2Fsrc%2F1791114957571.jpg%22%20onclick%3D%22return%20expandFile%28event%2C%20%272%27%29%3B%22%3E%3Cimg%20src%3D%22%2Fimgb%2Fb%2Fsrc%2F1791114957571.jpg%22%20width%3D%22500%22%20style%3D%22min-width%3A%20136px%3Bmin-height%3A%20250px%3Bmax-width%3A%2085vw%3Bheight%3A%20auto%3B%22%3E%3C%2Fa%3E</div>
+<div id="file2" class="thumb" style="display: none;"></div><div class="message">
+test<br>
+</div></td>
+</tr>
+</tbody>
+</table>
+		</div>
+				<hr>
+		<table class="userdelete">
+			<tbody>
+				<tr>
+					<td>
+						Delete Post <input type="password" name="password" id="deletepostpassword" size="8" placeholder="Password">&nbsp;<input name="deletepost" value="Delete" type="submit">
+					</td>
+				</tr>
+			</tbody>
+		</table>
+		</form>
+		<table border="1" style="display: inline-block;">
+	<tbody>
+		<tr>
+			<td>Previous</td><td>&#91;0&#93; </td><td>Next</td>
+		</tr>
+	</tbody>
+</table><table border="1" style="display: inline-block;margin-left: 21px;">
+	<tbody>
+		<tr>
+			<td><form method="get" action="catalog.html"><input value="Catalog" type="submit"></form></td>
+		</tr>
+	</tbody>
+</table>
+		<br>		<div class="footer">
+			Schan + <a href="https://codeberg.org/tslocum/schan" target="_blank">Schan</a>
+		</div>
+	</body>
+</html>
