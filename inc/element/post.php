@@ -5,20 +5,6 @@ if (!defined('SCHAN_BOARD')) {
 
 // post rendering (bbcode, links, backlinks, buildPost), loaded by html.php
 
-function supportedFileTypes() {
-	global $schan_uploads;
-	if (empty($schan_uploads)) {
-		return "";
-	}
-
-	$types_allowed = array_map('strtoupper', array_unique(array_column($schan_uploads, 0)));
-	if (count($types_allowed) == 1) {
-		return sprintf(__('Supported file type is %s'), $types_allowed[0]);
-	}
-	$last_type = array_pop($types_allowed);
-	return sprintf(__('Supported file types are %1$s and %2$s.'), implode(', ', $types_allowed), $last_type);
-}
-
 function _makeLinksClickable($matches) {
 	if (!isset($matches[1])) {
 		return '';

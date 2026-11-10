@@ -1,14 +1,12 @@
 <?php
 /*
   global message: one line shown on every board (index, thread, catalog) between the posting form and the threads
+  stored in the database (settings table, name 'globalmessage')
  */
+require_once __DIR__ . '/storage.php';
 
 if (!defined('SCHAN_GLOBALMESSAGE_MAX')) {
 	define('SCHAN_GLOBALMESSAGE_MAX', 500);
-}
-
-function globalMessagePath() {
-	return dirname(__DIR__) . '/.globalmessage.json';
 }
 
 function globalMessageGet() {
@@ -16,20 +14,12 @@ function globalMessageGet() {
 		return '';
 	}
 	if (!isset($GLOBALS['schan_globalmsg'])) {
-		$text = '';
-		$path = globalMessagePath();
-		if (is_readable($path)) {
-			$data = json_decode(@file_get_contents($path), true);
-			if (is_array($data) && isset($data['text']) && is_string($data['text'])) {
-				$text = $data['text'];
-			}
-		}
-		$GLOBALS['schan_globalmsg'] = $text;
+		$GLOBALS['schan_globalmsg'] = (string)storeSettingGet('globalmessage', '');
 	}
 	return $GLOBALS['schan_globalmsg'];
 }
 
-// saves the message ('' removes it). Returns false when the file cannot be written
+// saves the message ('' removes it). Returns false when it cannot be saved
 function globalMessageSet($text) {
 	if (function_exists('extensionEnabled') && !extensionEnabled('globalmessage')) {
 		return false;
@@ -37,11 +27,10 @@ function globalMessageSet($text) {
 	$text = trim(str_replace("\r", '', (string)$text));
 	$text = preg_replace('/\s*\n\s*/', ' ', $text);
 	$text = function_exists('mb_substr') ? mb_substr($text, 0, SCHAN_GLOBALMESSAGE_MAX, 'UTF-8') : substr($text, 0, SCHAN_GLOBALMESSAGE_MAX);
-	$path = globalMessagePath();
 	if ($text === '') {
-		$ok = is_file($path) ? @unlink($path) : true;
+		$ok = storeSettingDelete('globalmessage');
 	} else {
-		$ok = @file_put_contents($path, json_encode(array('text' => $text)), LOCK_EX) !== false;
+		$ok = storeSettingSet('globalmessage', $text);
 	}
 	if ($ok) {
 		$GLOBALS['schan_globalmsg'] = $text;

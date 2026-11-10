@@ -2,6 +2,7 @@
 if (!defined('SCHAN_BOARD')) {
 	die('');
 }
+require_once __DIR__ . '/storage.php';
 
 /*
  * Spoiler thumbnails.
@@ -10,124 +11,58 @@ if (!defined('SCHAN_BOARD')) {
  * shows /spoiler.png instead of the real thumbnail. The real thumbnail and file stay on
  * disk (clicking the thumbnail still expands the real file). Staff views show the real one.
  *
- * Which posts are spoilered is kept in spoiler-data.php in the install root. The file starts
- * with exit, so it can't be read over the web.
+ * Which posts are spoilered is kept in the database (<posts>_spoilers, keyed by board + post id).
  */
 
-function spoilerFile() {
-	return dirname(dirname(__FILE__)) . '/spoiler-data.php';
-}
-
-function spoilerParse($raw) {
-	$nl = strpos($raw, "\n");
-	if ($nl === false) {
-		return array();
-	}
-	$data = json_decode(substr($raw, $nl + 1), true);
-	return is_array($data) ? $data : array();
-}
-
-// post id => 1
-function spoilerAll($reset = false) {
-	static $cache = null;
-	if ($reset) {
-		$cache = null;
-	}
-	if ($cache !== null) {
-		return $cache;
-	}
-
-	$cache = array();
-	$file = spoilerFile();
-	if (is_readable($file)) {
-		$raw = @file_get_contents($file);
-		if ($raw !== false && $raw !== '') {
-			$cache = spoilerParse($raw);
-		}
-	}
-	return $cache;
-}
-
-// Post ids are only unique within a board, so a spoilered post is remembered as "board:id".
-function spoilerKey($id, $board = null) {
-	if ($board === null || $board === '') {
-		$board = function_exists('current_board') ? current_board() : '';
-	}
-	return $board . ':' . intval($id);
-}
-
-// The board a post row belongs to, or null (= the board currently being worked on)
 function spoilerBoardOf($post) {
 	return (is_array($post) && isset($post['board']) && $post['board'] !== '') ? $post['board'] : null;
 }
 
-// Old versions stored plain post ids ("5"), which made a post on one board spoiler the post with the same
-// number on every other board. Move each one to the board whose post it was. If several boards have a file
-// under that number there is no way to know which one was spoilered, so it is dropped.
+function spoilerBoardName($board = null) {
+	if ($board === null || $board === '') {
+		$board = function_exists('current_board') ? current_board() : '';
+	}
+	return $board;
+}
+
+// Post ids are only unique within a board, so a spoilered post is remembered as "board:id".
+function spoilerKey($id, $board = null) {
+	return spoilerBoardName($board) . ':' . intval($id);
+}
+
+// post id => 1 for one board (loaded with one query, cached for the request)
+function spoilerBoardSet($board = null, $reset = false) {
+	static $cache = array();
+	$board = spoilerBoardName($board);
+	if ($reset) {
+		unset($cache[$board]);
+	}
+	if (!isset($cache[$board])) {
+		$cache[$board] = array();
+		foreach (storeRows("SELECT `post_id` FROM `" . storeTable('spoilers') . "` WHERE `board` = '" . storeEsc($board) . "'") as $row) {
+			$cache[$board][(string)$row['post_id']] = 1;
+		}
+	}
+	return $cache[$board];
+}
+
+// Compatibility: "board:id" => 1 for every spoilered post
+function spoilerAll($reset = false) {
+	$all = array();
+	foreach (storeRows("SELECT `board`, `post_id` FROM `" . storeTable('spoilers') . "`") as $row) {
+		$all[$row['board'] . ':' . $row['post_id']] = 1;
+	}
+	return $all;
+}
+
+// Legacy plain-id entries are converted by the one-time import in storage.php; kept so old callers still work.
 function spoilerMigrateLegacy() {
-	static $done = false;
-	if ($done) {
-		return;
-	}
-	$legacy = array();
-	foreach (spoilerAll() as $key => $v) {
-		if (ctype_digit((string)$key)) {
-			$legacy[] = (int)$key;
-		}
-	}
-	if (empty($legacy)) {
-		$done = true;
-		return;
-	}
-	if (!function_exists('allBoards') || !function_exists('postByID')) {
-		return; // database not ready yet; try again on a later call
-	}
-	$done = true;
-
-	$slugs = array();
-	foreach (allBoards() as $b) {
-		if (!defined('SCHAN_OVERBOARD') || $b['slug'] !== SCHAN_OVERBOARD) {
-			$slugs[] = $b['slug'];
-		}
-	}
-	$prev = isset($GLOBALS['schan_forced_board']) ? $GLOBALS['schan_forced_board'] : null;
-	$assign = array();
-	foreach ($legacy as $id) {
-		$owners = array();
-		foreach ($slugs as $slug) {
-			$GLOBALS['schan_forced_board'] = $slug;
-			if (function_exists('clearPostCache')) {
-				clearPostCache();
-			}
-			$p = postByID($id);
-			if (!empty($p) && isset($p['file']) && $p['file'] != '') {
-				$owners[] = $slug;
-			}
-		}
-		if (count($owners) === 1) {
-			$assign[$id] = $owners[0];
-		}
-	}
-	$GLOBALS['schan_forced_board'] = $prev;
-	if (function_exists('clearPostCache')) {
-		clearPostCache();
-	}
-
-	spoilerUpdate(function ($data) use ($legacy, $assign) {
-		foreach ($legacy as $id) {
-			unset($data[(string)$id]);
-			if (isset($assign[$id])) {
-				$data[$assign[$id] . ':' . $id] = 1;
-			}
-		}
-		return $data;
-	});
+	storeEnsure();
 }
 
 function spoilerIs($id, $board = null) {
-	spoilerMigrateLegacy();
-	$all = spoilerAll();
-	return isset($all[spoilerKey($id, $board)]);
+	$set = spoilerBoardSet($board);
+	return isset($set[(string)intval($id)]);
 }
 
 // Is this post row's file spoilered? (uses the row's own board when it has one)
@@ -135,45 +70,17 @@ function spoilerIsPost($post) {
 	return is_array($post) && isset($post['id']) && spoilerIs($post['id'], spoilerBoardOf($post));
 }
 
-function spoilerUpdate($fn) {
-	$fh = @fopen(spoilerFile(), 'c+');
-	if (!$fh) {
-		return false;
-	}
-	flock($fh, LOCK_EX);
-	$raw = stream_get_contents($fh);
-	$data = ($raw !== false && $raw !== '') ? spoilerParse($raw) : array();
-	$data = $fn($data);
-	ftruncate($fh, 0);
-	rewind($fh);
-	fwrite($fh, "<?php exit; ?>\n" . json_encode((object)$data));
-	fflush($fh);
-	flock($fh, LOCK_UN);
-	fclose($fh);
-	spoilerAll(true);
-	return true;
-}
-
 function spoilerSet($id, $board = null) {
-	spoilerMigrateLegacy();
-	$key = spoilerKey($id, $board);
-	return spoilerUpdate(function ($data) use ($key) {
-		$data[$key] = 1;
-		return $data;
-	});
+	$board = spoilerBoardName($board);
+	$ok = (bool)storeExec("INSERT IGNORE INTO `" . storeTable('spoilers') . "` (`board`, `post_id`) VALUES ('" . storeEsc($board) . "', " . intval($id) . ")") || spoilerIs($id, $board);
+	spoilerBoardSet($board, true);
+	return $ok;
 }
 
 function spoilerClear($id, $board = null) {
-	spoilerMigrateLegacy();
-	$key = spoilerKey($id, $board);
-	$all = spoilerAll();
-	if (!isset($all[$key])) {
-		return;
-	}
-	spoilerUpdate(function ($data) use ($key) {
-		unset($data[$key]);
-		return $data;
-	});
+	$board = spoilerBoardName($board);
+	storeExec("DELETE FROM `" . storeTable('spoilers') . "` WHERE `board` = '" . storeEsc($board) . "' AND `post_id` = " . intval($id));
+	spoilerBoardSet($board, true);
 }
 
 // Positions (0 = first file, 1 = second, ...) of the files whose Spoiler box was ticked

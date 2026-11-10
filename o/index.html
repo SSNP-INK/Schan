@@ -455,7 +455,93 @@ var schanDefaults = {"hover":true};</script>
 			return true;
 		}
 		</script>
-		
+		<script type="text/javascript">
+function pollAddOption(){
+	var box=document.getElementById("pollopts");
+	if(!box){return false;}
+	var n=box.getElementsByTagName("input").length;
+	if(n>=8){return false;}
+	var i=document.createElement("input");
+	i.type="text";i.name="poll[]";i.size=28;i.maxLength=60;i.autocomplete="off";
+	i.placeholder="Option "+(n+1);
+	box.appendChild(i);
+	box.appendChild(document.createElement("br"));
+	return false;
+}
+function pollBoard(){return (typeof currentBoard==="string")?currentBoard:"";}
+function pollBoardFor(id){var e=document.getElementById("poll"+id),b=e?e.getAttribute("data-board"):null;return b?b:pollBoard();}
+function pollURL(q,b){
+	var root=(typeof schanRoot==="string")?schanRoot:"";
+	return root+"/imgboard.php?"+q+"&board="+encodeURIComponent(b!==undefined&&b!==null?b:pollBoard());
+}
+function pollRequest(url,body,cb){
+	var x=new XMLHttpRequest();
+	x.open(body?"POST":"GET",url,true);
+	if(body){x.setRequestHeader("Content-Type","application/x-www-form-urlencoded");}
+	x.onreadystatechange=function(){
+		if(x.readyState!==4){return;}
+		var r=null;
+		try{r=JSON.parse(x.responseText);}catch(e){}
+		cb(r);
+	};
+	x.send(body||null);
+}
+/* Writes "= count" beside each option. Once this IP has voted, the options go grey and locked. */
+function pollApply(id,r){
+	if(!r||!r.options){return;}
+	for(var i=0;i<r.options.length;i++){
+		var c=document.getElementById("pollcount"+id+"_"+i);
+		if(c){c.textContent=" = "+(r.votes[i]||0);}
+	}
+	if(r.voted>=0){
+		var radios=document.getElementsByName("pollopt"+id);
+		for(var j=0;j<radios.length;j++){
+			radios[j].checked=(parseInt(radios[j].value,10)===r.voted);
+			radios[j].disabled=true;
+		}
+		var opts=document.getElementById("polloptions"+id);
+		var btns=document.getElementById("pollbuttons"+id);
+		if(opts){opts.style.opacity="0.5";}
+		if(btns){btns.style.display="none";}
+	}
+}
+function pollVote(id){
+	var radios=document.getElementsByName("pollopt"+id),v=-1;
+	for(var i=0;i<radios.length;i++){if(radios[i].checked){v=radios[i].value;break;}}
+	if(v<0){alert("Choose an option first.");return;}
+	var pb=pollBoardFor(id);
+	pollRequest(pollURL("vote",pb),"poll="+id+"&option="+encodeURIComponent(v)+"&board="+encodeURIComponent(pb),function(r){
+		if(!r){alert("Your vote could not be recorded.");return;}
+		if(r.error){alert(r.error);}
+		pollApply(id,r);
+	});
+}
+function pollResults(id){
+	pollRequest(pollURL("pollresults="+id,pollBoardFor(id)),null,function(r){
+		if(r&&r.options){pollApply(id,r);}
+		else{alert((r&&r.error)?r.error:"Could not load the results.");}
+	});
+}
+/* On page load, polls this IP already voted in are shown greyed out with their counts */
+function pollInit(){
+	if(!document.querySelectorAll){return;}
+	var els=document.querySelectorAll("[data-poll]"),groups={},any=false;
+	for(var i=0;i<els.length;i++){
+		var b=els[i].getAttribute("data-board")||pollBoard();
+		(groups[b]=groups[b]||[]).push(els[i].getAttribute("data-poll"));any=true;
+	}
+	if(!any){return;}
+	for(var g in groups){if(!groups.hasOwnProperty(g)){continue;}(function(g){
+		pollRequest(pollURL("pollstatus="+groups[g].join(","),g),null,function(r){
+			if(!r){return;}
+			for(var k in r){
+				if(r.hasOwnProperty(k)&&r[k]&&r[k].options&&r[k].voted>=0){pollApply(k,r[k]);}
+			}
+		});
+	})(g);}
+}
+if(document.addEventListener){document.addEventListener("DOMContentLoaded",pollInit,false);}
+</script>
 		<script type="text/javascript">
 		window.expandFile = function(e, id){
 			if (e && (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1)) { return true; }
@@ -625,7 +711,7 @@ var schanDefaults = {"hover":true};</script>
 		</script>
 		
 	</head>	<body>
-		<div class="boardbar" style="position:absolute;">[ <span class="boardlinks"><a href="/o/" class="current" title="overboard">o</a> / <a href="/b/" title="random">b</a></span> ]</div>
+		<div class="boardbar" style="position:absolute;">[ <span class="boardlinks"><a href="/o/" class="current" title="overboard">o</a> / <a href="/b/">b</a></span> ]</div>
 		<div class="adminbar">
 			[<a href="catalog.html" style="text-decoration: underline;">Catalog</a>]
 			[<a href="/mod.php" style="text-decoration: underline;">Manage</a>]
@@ -846,18 +932,18 @@ var schanDefaults = {"hover":true};</script>
 })();
 </script>
 		<div class="logo"><span class="boardslug">/o/</span> &middot; <span class="boardtitle">overboard</span><div class="boarddesc" style="font-size:0.5em;text-align:center;">Latest threads from every board</div><div class="boardbanner" style="text-align:center;margin:8px 0;">
-<a href="#" id="boardbanner11link" style="display:inline-block;cursor:pointer;"><img id="boardbanner11" src="" width="300" height="100" alt="Banner" style="border:0;max-width:100%;height:auto;display:block;"></a>
+<a href="#" id="boardbanner4link" style="display:inline-block;cursor:pointer;"><img id="boardbanner4" src="" width="300" height="100" alt="Banner" style="border:0;max-width:100%;height:auto;display:block;"></a>
 <script type="text/javascript">
 (function () {
 	var banners = ["/static/banners/banner%20test.png"], cur = -1;
-	var img = document.getElementById("boardbanner11");
+	var img = document.getElementById("boardbanner4");
 	function show() {
 		var i;
 		do { i = Math.floor(Math.random() * banners.length); } while (i === cur && banners.length > 1);
 		cur = i;
 		img.src = banners[i];
 	}
-	document.getElementById("boardbanner11link").addEventListener("click", function (e) {
+	document.getElementById("boardbanner4link").addEventListener("click", function (e) {
 		e.preventDefault();
 		show();
 	});
@@ -873,7 +959,7 @@ var schanDefaults = {"hover":true};</script>
 			<input type="hidden" name="parent" value="0"><input type="hidden" name="from_overboard" value="1">
 			<table class="postform">
 				<tbody>
-					<tr><td class="postblock">Board</td><td><select name="board" id="overboardBoard"><option value="b">/b/ - random</option></select><script type="text/javascript">(function(){
+					<tr><td class="postblock">Board</td><td><select name="board" id="overboardBoard"><option value="b">/b/</option></select><script type="text/javascript">(function(){
 	var s=document.getElementById('overboardBoard');
 	if(!s){return;}
 	try{
@@ -964,7 +1050,13 @@ inp.addEventListener('change',function(){
 if(inp.form){inp.form.addEventListener('reset',function(){dt=new DataTransfer();sps=[];list.innerHTML='';upd();});}
 })();</script><small>You can attach up to 4 files.</small>
 						</td>
-					</tr><tr><td class="postblock">Extras</td><td><button type="button" data-xtra-tab="oekaki">Oekaki</button> <button type="button" data-xtra-tab="embed">Embed</button> <div data-xtra-panel="oekaki" style="display:none;margin-top:6px;"><a href="#" class="oek-toggle" style="display:none;">&#9656; Draw an image</a>
+					</tr><tr><td class="postblock">Extras</td><td><button type="button" data-xtra-tab="poll">Poll</button> <button type="button" data-xtra-tab="oekaki">Oekaki</button> <button type="button" data-xtra-tab="embed">Embed</button> <div data-xtra-panel="poll" style="display:none;margin-top:6px;">
+							<details class="pollform">
+								<summary style="cursor:pointer;">Add a poll</summary>
+								<div id="pollopts"><input type="text" name="poll[]" size="28" maxlength="60" placeholder="Option 1" autocomplete="off"><br><input type="text" name="poll[]" size="28" maxlength="60" placeholder="Option 2" autocomplete="off"><br></div>
+								<a href="#" onclick="return pollAddOption();">+ Add option</a> <small>(2-8 options, one vote per IP)</small>
+							</details>
+						</div><div data-xtra-panel="oekaki" style="display:none;margin-top:6px;"><a href="#" class="oek-toggle" style="display:none;">&#9656; Draw an image</a>
 <div class="oek-box" style="margin-top:6px;">
 	<div class="oek-setup">
 		Canvas size: <input type="number" class="oek-w" value="400" min="50" max="800" style="width:60px;"> &times; <input type="number" class="oek-h" value="300" min="50" max="800" style="width:60px;">
@@ -1080,7 +1172,7 @@ attachBtn.onclick=function(){
 								<li>Supported file types are JPG, PNG, GIF, WEBP, SVG, SWF, AAC, FLAC, OGG, OPUS, MP3, MP4, WAV and WEBM.</li>
 								<li>Maximum file size allowed is 30 MB.</li>
 								<li>Images greater than 250x250 will be thumbnailed.</li>
-								<li>Currently 4 unique user posts.</li>
+								<li>Currently 1 unique user posts.</li>
 
 							</ul>
 						</td>
@@ -1563,152 +1655,17 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 		<form id="delform" action="../imgboard.php?delete" method="post">
 		<input type="hidden" name="board" value="o">
 		<div id="posts">
-		<div id="post46" class="op"><span class="filesize">File: <a href="/b/src/1792946446518.png" target="_blank" onclick="return expandFile(event, '46');">...en armband</a>&ndash;(41.84KB, 1045x1719)</span><br><div id="thumbfile46"><a href="/b/src/1792946446518.png" target="_blank" onclick="return expandFile(event, '46');">
-	<img src="/b/thumb/1792946446518s.png" alt="46" class="thumb" id="thumbnail46" width="152" height="250">
-</a></div><div id="expand46" style="display: none;">%3Ca%20href%3D%22%2Fb%2Fsrc%2F1792946446518.png%22%20onclick%3D%22return%20expandFile%28event%2C%20%2746%27%29%3B%22%3E%3Cimg%20src%3D%22%2Fb%2Fsrc%2F1792946446518.png%22%20width%3D%221045%22%20style%3D%22min-width%3A%20152px%3Bmin-height%3A%20250px%3Bmax-width%3A%2085vw%3Bheight%3A%20auto%3B%22%3E%3C%2Fa%3E</div>
-<div id="file46" class="thumb" style="display: none;"></div><a id="46"></a>
+		<div id="post1" class="op"><span class="filesize">File: <a href="/b/src/1794314898952.webp" target="_blank" onclick="return expandFile(event, '1');">2807.webp</a>&ndash;(13.20KB, 500x500)</span><br><div id="thumbfile1"><a href="/b/src/1794314898952.webp" target="_blank" onclick="return expandFile(event, '1');">
+	<img src="/b/thumb/1794314898952s.webp" alt="1" class="thumb" id="thumbnail1" width="250" height="250">
+</a></div><div id="expand1" style="display: none;">%3Ca%20href%3D%22%2Fb%2Fsrc%2F1794314898952.webp%22%20onclick%3D%22return%20expandFile%28event%2C%20%271%27%29%3B%22%3E%3Cimg%20src%3D%22%2Fb%2Fsrc%2F1794314898952.webp%22%20width%3D%22500%22%20style%3D%22min-width%3A%20250px%3Bmin-height%3A%20250px%3Bmax-width%3A%2085vw%3Bheight%3A%20auto%3B%22%3E%3C%2Fa%3E</div>
+<div id="file1" class="thumb" style="display: none;"></div><a id="1"></a>
 <label>
-	<input type="checkbox" name="delete[]" value="b:46"> <span class="boardtag">[<a href="/b/">b</a>]</span> <span class="postername">Anonymous</span> 26/10/25(Sun)16:40:46
+	<input type="checkbox" name="delete[]" value="b:1"> <span class="boardtag">[<a href="/b/">b</a>]</span> <span class="postername">Anonymous</span> 26/11/10(Tue)12:48:18
 </label>
 <span class="reflink">
-	<a href="/b/res/46.html#46">No.</a><a href="/b/res/46.html#q46">46</a>
-</span>&nbsp;<a class="btnlink" href="/b/res/46.html">Reply</a> <small><span id="backlinks46" class="backlinks"></span></small><div class="message">
-rtest<br>
-</div></div>
-<hr><div id="post45" class="op"><span class="filesize">File: <a href="/b/src/1792944148992.png" target="_blank" onclick="return expandFile(event, '45');">... crying ey</a>&ndash;(22.33KB, 680x768)</span><br><div id="thumbfile45"><a href="/b/src/1792944148992.png" target="_blank" onclick="return expandFile(event, '45');">
-	<img src="/b/thumb/1792944148992s.png" alt="45" class="thumb" id="thumbnail45" width="221" height="250">
-</a></div><div id="expand45" style="display: none;">%3Ca%20href%3D%22%2Fb%2Fsrc%2F1792944148992.png%22%20onclick%3D%22return%20expandFile%28event%2C%20%2745%27%29%3B%22%3E%3Cimg%20src%3D%22%2Fb%2Fsrc%2F1792944148992.png%22%20width%3D%22680%22%20style%3D%22min-width%3A%20221px%3Bmin-height%3A%20250px%3Bmax-width%3A%2085vw%3Bheight%3A%20auto%3B%22%3E%3C%2Fa%3E</div>
-<div id="file45" class="thumb" style="display: none;"></div><a id="45"></a>
-<label>
-	<input type="checkbox" name="delete[]" value="b:45"> <span class="boardtag">[<a href="/b/">b</a>]</span> <span class="postername">Anonymous</span> 26/10/25(Sun)16:02:28
-</label>
-<span class="reflink">
-	<a href="/b/res/45.html#45">No.</a><a href="/b/res/45.html#q45">45</a>
-</span>&nbsp;<a class="btnlink" href="/b/res/45.html">Reply</a> <small><span id="backlinks45" class="backlinks"></span></small><div class="message">
-tesy<br>
-</div></div>
-<hr><div id="post44" class="op"><span class="filesize">File: <a href="/b/src/1792943828135.jpg" target="_blank" onclick="return expandFile(event, '44');">...unset.jpeg</a>&ndash;(34.34KB, 493x405)</span><br><div id="thumbfile44"><a href="/b/src/1792943828135.jpg" target="_blank" onclick="return expandFile(event, '44');">
-	<img src="/b/thumb/1792943828135s.jpg" alt="44" class="thumb" id="thumbnail44" width="250" height="205">
-</a></div><div id="expand44" style="display: none;">%3Ca%20href%3D%22%2Fb%2Fsrc%2F1792943828135.jpg%22%20onclick%3D%22return%20expandFile%28event%2C%20%2744%27%29%3B%22%3E%3Cimg%20src%3D%22%2Fb%2Fsrc%2F1792943828135.jpg%22%20width%3D%22493%22%20style%3D%22min-width%3A%20250px%3Bmin-height%3A%20205px%3Bmax-width%3A%2085vw%3Bheight%3A%20auto%3B%22%3E%3C%2Fa%3E</div>
-<div id="file44" class="thumb" style="display: none;"></div><a id="44"></a>
-<label>
-	<input type="checkbox" name="delete[]" value="b:44"> <span class="boardtag">[<a href="/b/">b</a>]</span> <span class="postername">Anonymous</span> 26/10/25(Sun)15:57:08
-</label>
-<span class="reflink">
-	<a href="/b/res/44.html#44">No.</a><a href="/b/res/44.html#q44">44</a>
-</span>&nbsp;<a class="btnlink" href="/b/res/44.html">Reply</a> <small><span id="backlinks44" class="backlinks"></span></small><div class="message">
+	<a href="/b/res/1.html#1">No.</a><a href="/b/res/1.html#q1">1</a>
+</span>&nbsp;<a class="btnlink" href="/b/res/1.html">Reply</a> <small><span id="backlinks1" class="backlinks"></span></small><div class="ibpoll" id="poll1" data-poll="1" data-board="b" style="text-align:left;margin:6px 0;padding:0;background:transparent !important;border:0 !important;box-shadow:none !important;"><div class="ibpoll-options" id="polloptions1" style="background:transparent !important;border:0 !important;padding:0;"><label style="display:inline-block;margin:0 12px 2px 0;white-space:nowrap;"><input type="radio" name="pollopt1" value="0"> test1<span class="pollcount" id="pollcount1_0"></span></label><label style="display:inline-block;margin:0 12px 2px 0;white-space:nowrap;"><input type="radio" name="pollopt1" value="1"> test2<span class="pollcount" id="pollcount1_1"></span></label><label style="display:inline-block;margin:0 12px 2px 0;white-space:nowrap;"><input type="radio" name="pollopt1" value="2"> test4<span class="pollcount" id="pollcount1_2"></span></label></div><div class="ibpoll-buttons" id="pollbuttons1" style="margin-top:4px;background:transparent !important;border:0 !important;padding:0;"><input type="button" value="Vote" onclick="pollVote(1);"> <input type="button" value="Results" onclick="pollResults(1);"></div></div><div class="message">
 test<br>
-</div></div>
-<hr><div id="post43" class="op"><span class="filesize">File: <a href="/b/src/1792943744209.gif" target="_blank" onclick="return expandFile(event, '43');">...t alot.gif</a>&ndash;(410.42KB, 720x480)</span><br><div id="thumbfile43"><a href="/b/src/1792943744209.gif" target="_blank" onclick="return expandFile(event, '43');">
-	<img src="/b/thumb/1792943744209s.gif" alt="43" class="thumb" id="thumbnail43" width="250" height="167">
-</a></div><div id="expand43" style="display: none;">%3Ca%20href%3D%22%2Fb%2Fsrc%2F1792943744209.gif%22%20onclick%3D%22return%20expandFile%28event%2C%20%2743%27%29%3B%22%3E%3Cimg%20src%3D%22%2Fb%2Fsrc%2F1792943744209.gif%22%20width%3D%22720%22%20style%3D%22min-width%3A%20250px%3Bmin-height%3A%20167px%3Bmax-width%3A%2085vw%3Bheight%3A%20auto%3B%22%3E%3C%2Fa%3E</div>
-<div id="file43" class="thumb" style="display: none;"></div><a id="43"></a>
-<label>
-	<input type="checkbox" name="delete[]" value="b:43"> <span class="boardtag">[<a href="/b/">b</a>]</span> <span class="postername">timo </span> <span style="color: red;">## testnig</span> 26/10/25(Sun)15:55:44
-</label>
-<span class="reflink">
-	<a href="/b/res/43.html#43">No.</a><a href="/b/res/43.html#q43">43</a>
-</span>&nbsp;<a class="btnlink" href="/b/res/43.html">Reply</a> <small><span id="backlinks43" class="backlinks"></span></small><div class="message">
-testy<br>
-</div></div>
-<hr><div id="post42" class="op"><span class="filesize">File: <a href="/b/src/1792943469998.jpg" target="_blank" onclick="return expandFile(event, '42');">...34639u.JPG</a>&ndash;(26.87KB, 409x409)</span><br><div id="thumbfile42"><a href="/b/src/1792943469998.jpg" target="_blank" onclick="return expandFile(event, '42');">
-	<img src="/b/thumb/1792943469998s.jpg" alt="42" class="thumb" id="thumbnail42" width="250" height="250">
-</a></div><div id="expand42" style="display: none;">%3Ca%20href%3D%22%2Fb%2Fsrc%2F1792943469998.jpg%22%20onclick%3D%22return%20expandFile%28event%2C%20%2742%27%29%3B%22%3E%3Cimg%20src%3D%22%2Fb%2Fsrc%2F1792943469998.jpg%22%20width%3D%22409%22%20style%3D%22min-width%3A%20250px%3Bmin-height%3A%20250px%3Bmax-width%3A%2085vw%3Bheight%3A%20auto%3B%22%3E%3C%2Fa%3E</div>
-<div id="file42" class="thumb" style="display: none;"></div><a id="42"></a>
-<label>
-	<input type="checkbox" name="delete[]" value="b:42"> <span class="boardtag">[<a href="/b/">b</a>]</span> <span class="postername">timo </span> <span style="color: purple;">## Mod</span> 26/10/25(Sun)15:51:09
-</label>
-<span class="reflink">
-	<a href="/b/res/42.html#42">No.</a><a href="/b/res/42.html#q42">42</a>
-</span>&nbsp;<a class="btnlink" href="/b/res/42.html">Reply</a> <small><span id="backlinks42" class="backlinks"></span></small><div class="message">
-test<br>
-</div></div>
-<hr><div id="post41" class="op"><span class="filesize">File: <a href="/b/src/1792943099562.jpg" target="_blank" onclick="return expandFile(event, '41');">..._QL80_.jpg</a>&ndash;(53.66KB, 667x1000)</span><br><div id="thumbfile41"><a href="/b/src/1792943099562.jpg" target="_blank" onclick="return expandFile(event, '41');">
-	<img src="/b/thumb/1792943099562s.jpg" alt="41" class="thumb" id="thumbnail41" width="167" height="250">
-</a></div><div id="expand41" style="display: none;">%3Ca%20href%3D%22%2Fb%2Fsrc%2F1792943099562.jpg%22%20onclick%3D%22return%20expandFile%28event%2C%20%2741%27%29%3B%22%3E%3Cimg%20src%3D%22%2Fb%2Fsrc%2F1792943099562.jpg%22%20width%3D%22667%22%20style%3D%22min-width%3A%20167px%3Bmin-height%3A%20250px%3Bmax-width%3A%2085vw%3Bheight%3A%20auto%3B%22%3E%3C%2Fa%3E</div>
-<div id="file41" class="thumb" style="display: none;"></div><a id="41"></a>
-<label>
-	<input type="checkbox" name="delete[]" value="b:41"> <span class="boardtag">[<a href="/b/">b</a>]</span> <span class="postername">Anonymous</span> <span style="color: red;">## nigg</span> 26/10/25(Sun)15:44:59
-</label>
-<span class="reflink">
-	<a href="/b/res/41.html#41">No.</a><a href="/b/res/41.html#q41">41</a>
-</span>&nbsp;<a class="btnlink" href="/b/res/41.html">Reply</a> <small><span id="backlinks41" class="backlinks"></span></small><div class="message">
-test<br>
-</div></div>
-<hr><div id="post22" class="op"><span class="filesize">File: <a href="/b/src/1792862461581.gif" target="_blank" onclick="return expandFile(event, '22');">....party.gif</a>&ndash;(19.25KB, 255x235)</span><br><div id="thumbfile22"><a href="/b/src/1792862461581.gif" target="_blank" onclick="return expandFile(event, '22');">
-	<img src="/b/thumb/1792862461581s.gif" alt="22" class="thumb" id="thumbnail22" width="250" height="230">
-</a></div><div id="expand22" style="display: none;">%3Ca%20href%3D%22%2Fb%2Fsrc%2F1792862461581.gif%22%20onclick%3D%22return%20expandFile%28event%2C%20%2722%27%29%3B%22%3E%3Cimg%20src%3D%22%2Fb%2Fsrc%2F1792862461581.gif%22%20width%3D%22255%22%20style%3D%22min-width%3A%20250px%3Bmin-height%3A%20230px%3Bmax-width%3A%2085vw%3Bheight%3A%20auto%3B%22%3E%3C%2Fa%3E</div>
-<div id="file22" class="thumb" style="display: none;"></div><a id="22"></a>
-<label>
-	<input type="checkbox" name="delete[]" value="b:22"> <span class="boardtag">[<a href="/b/">b</a>]</span> <span class="postername">Anonymous</span> 26/10/24(Sat)17:21:01
-</label>
-<span class="reflink">
-	<a href="/b/res/22.html#22">No.</a><a href="/b/res/22.html#q22">22</a>
-</span>&nbsp;<a class="btnlink" href="/b/res/22.html">Reply</a> <small><span id="backlinks22" class="backlinks"></span></small><div class="message">
-test<br>
-</div></div><span class="omittedposts">14 posts omitted. Click Reply to view.</span><table>
-<tbody>
-<tr>
-<td class="doubledash">
-	&#0168;
-</td>
-<td class="reply" id="post37"><a id="37"></a>
-<label>
-	<input type="checkbox" name="delete[]" value="b:37"> <span class="boardtag">[<a href="/b/">b</a>]</span> <span class="postername">Anonymous</span> 26/10/25(Sun)15:14:44
-</label>
-<span class="reflink">
-	<a href="/b/res/22.html#37">No.</a><a href="/b/res/22.html#q37">37</a>
-</span> <small><span id="backlinks37" class="backlinks"></span></small><div class="message">
-test<br>
-</div></td>
-</tr>
-</tbody>
-</table><table>
-<tbody>
-<tr>
-<td class="doubledash">
-	&#0168;
-</td>
-<td class="reply" id="post38"><a id="38"></a>
-<label>
-	<input type="checkbox" name="delete[]" value="b:38"> <span class="boardtag">[<a href="/b/">b</a>]</span> <span class="postername">Anonymous</span> 26/10/25(Sun)15:14:50
-</label>
-<span class="reflink">
-	<a href="/b/res/22.html#38">No.</a><a href="/b/res/22.html#q38">38</a>
-</span> <small><span id="backlinks38" class="backlinks"></span></small><div class="message">
-tst<br>
-</div></td>
-</tr>
-</tbody>
-</table><table>
-<tbody>
-<tr>
-<td class="doubledash">
-	&#0168;
-</td>
-<td class="reply" id="post39"><a id="39"></a>
-<label>
-	<input type="checkbox" name="delete[]" value="b:39"> <span class="boardtag">[<a href="/b/">b</a>]</span> <span class="postername">Anonymous</span> 26/10/25(Sun)15:15:50
-</label>
-<span class="reflink">
-	<a href="/b/res/22.html#39">No.</a><a href="/b/res/22.html#q39">39</a>
-</span> <small><span id="backlinks39" class="backlinks"></span></small><div class="message">
-test<br>
-</div></td>
-</tr>
-</tbody>
-</table>
-<hr><div id="post21" class="op"><span class="filesize">File: <a href="/b/src/1792829559903.jpg" target="_blank" onclick="return expandFile(event, '21');">...34639u.JPG</a>&ndash;(26.87KB, 409x409)</span><br><div id="thumbfile21"><a href="/b/src/1792829559903.jpg" target="_blank" onclick="return expandFile(event, '21');">
-	<img src="/b/thumb/1792829559903s.jpg" alt="21" class="thumb" id="thumbnail21" width="250" height="250">
-</a></div><div id="expand21" style="display: none;">%3Ca%20href%3D%22%2Fb%2Fsrc%2F1792829559903.jpg%22%20onclick%3D%22return%20expandFile%28event%2C%20%2721%27%29%3B%22%3E%3Cimg%20src%3D%22%2Fb%2Fsrc%2F1792829559903.jpg%22%20width%3D%22409%22%20style%3D%22min-width%3A%20250px%3Bmin-height%3A%20250px%3Bmax-width%3A%2085vw%3Bheight%3A%20auto%3B%22%3E%3C%2Fa%3E</div>
-<div id="file21" class="thumb" style="display: none;"></div><a id="21"></a>
-<label>
-	<input type="checkbox" name="delete[]" value="b:21"> <span class="boardtag">[<a href="/b/">b</a>]</span> <a href="mailto:admin"><span class="postername">Anonymous</span></a> 26/10/24(Sat)08:12:39
-</label>
-<span class="reflink">
-	<a href="/b/res/21.html#21">No.</a><a href="/b/res/21.html#q21">21</a>
-</span>&nbsp;<a class="btnlink" href="/b/res/21.html">Reply</a> <small><span id="backlinks21" class="backlinks"></span></small><div class="message">
-testnigg<br>
 </div></div>
 		</div>
 				<hr>

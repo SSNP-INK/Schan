@@ -9,6 +9,26 @@ After installing you can still edit any value here by hand.
 Many settings require the imageboard to be rebuilt to take effect. To do this,
 click Rebuild All in the management panel.
 */
+// Database  (filled in by install.php)
+define('SCHAN_DBMODE', 'mysqli');     // Mode
+define('SCHAN_DBACCOUNTS', 'accounts'); // Staff accounts
+define('SCHAN_DBBANS', 'bans');         // Bans
+define('SCHAN_DBKEYWORDS', 'keywords'); // Keywords
+define('SCHAN_DBLOGS', 'logs');         // Staff logs
+define('SCHAN_DBPOSTS', 'posts');       // Posts  (shared across all boards)
+define('SCHAN_DBREPORTS', 'reports');   // Reports  (shared across all boards)
+define('SCHAN_DBBOARDS', 'boards');     // Boards  (registry of boards)
+define('SCHAN_DBMIGRATE', false);       // Enable database migration tool
+
+define('SCHAN_DBHOST', 'localhost'); // Hostname
+define('SCHAN_DBPORT', 3306);        // Port  (set to 0 if you are using a UNIX socket as the host)
+define('SCHAN_DBUSERNAME', 'admin');      // Username
+define('SCHAN_DBPASSWORD', ']]57=Zmg4i8-');      // Password
+define('SCHAN_DBNAME', 'fart_db');          // Database
+
+define('SCHAN_DBPATH', '.schan.db');  // SQLite DB path
+define('SCHAN_DBDRIVER', 'mysql');   // PDO driver to use (mysql / pgsql / sqlite / etc.)
+define('SCHAN_DBDSN', '');           // Custom DSN, overrides the connection settings above
 
 // Internationalization
 define('SCHAN_ROOTURL', '');   // URL path of the install root; '' if at the web root
@@ -149,7 +169,7 @@ define('SCHAN_MAXW', 250);           // Width
 define('SCHAN_MAXH', 250);           // Height
 
 // Tripcode seed - Must not change once set!  (install.php generates a random one)
-define('SCHAN_TRIPSEED', 'c3acfa04da0e92b3d336de9f421824d4');
+define('SCHAN_TRIPSEED', '515d49827f965ae78b975b0079cc61a8');
 
 // CAPTCHA - hCaptcha / reCAPTCHA
 define('SCHAN_HCAPTCHA_SITE', '');   // Site key
@@ -163,27 +183,6 @@ define('SCHAN_MANAGEKEY', '');       // When set, the management panel may only 
 //   install.php fills this in. Once the account exists you may blank it.
 define('SCHAN_ADMINPASS', 'war');       // Administrator password
 define('SCHAN_MODPASS', '');         // Moderator password  ['' to disable]
-
-// Database  (filled in by install.php)
-define('SCHAN_DBMODE', 'mysqli');     // Mode
-define('SCHAN_DBACCOUNTS', 'accounts'); // Staff accounts
-define('SCHAN_DBBANS', 'bans');         // Bans
-define('SCHAN_DBKEYWORDS', 'keywords'); // Keywords
-define('SCHAN_DBLOGS', 'logs');         // Staff logs
-define('SCHAN_DBPOSTS', 'posts');       // Posts  (shared across all boards)
-define('SCHAN_DBREPORTS', 'reports');   // Reports  (shared across all boards)
-define('SCHAN_DBBOARDS', 'boards');     // Boards  (registry of boards)
-define('SCHAN_DBMIGRATE', false);       // Enable database migration tool
-
-define('SCHAN_DBHOST', 'localhost'); // Hostname
-define('SCHAN_DBPORT', 3306);        // Port  (set to 0 if you are using a UNIX socket as the host)
-define('SCHAN_DBUSERNAME', 'admin');      // Username
-define('SCHAN_DBPASSWORD', ']]57=Zmg4i8-');      // Password
-define('SCHAN_DBNAME', 'fart_db');          // Database
-
-define('SCHAN_DBPATH', '.schan.db');  // SQLite DB path
-define('SCHAN_DBDRIVER', 'mysql');   // PDO driver to use (mysql / pgsql / sqlite / etc.)
-define('SCHAN_DBDSN', '');           // Custom DSN, overrides the connection settings above
 
 // Page options
 //   Everything below is optional and commented out. Remove the // in front of a line to turn it on;

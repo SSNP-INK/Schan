@@ -22,9 +22,9 @@ define('SCHAN_DBMIGRATE', false);       // Enable database migration tool
 
 define('SCHAN_DBHOST', 'localhost'); // Hostname
 define('SCHAN_DBPORT', 3306);        // Port  (set to 0 if you are using a UNIX socket as the host)
-define('SCHAN_DBUSERNAME', 'admin');      // Username
-define('SCHAN_DBPASSWORD', ']]57=Zmg4i8-');      // Password
-define('SCHAN_DBNAME', 'fart_db');          // Database
+define('SCHAN_DBUSERNAME', '');      // Username
+define('SCHAN_DBPASSWORD', '');      // Password
+define('SCHAN_DBNAME', '');          // Database
 
 define('SCHAN_DBPATH', '.schan.db');  // SQLite DB path
 define('SCHAN_DBDRIVER', 'mysql');   // PDO driver to use (mysql / pgsql / sqlite / etc.)
@@ -169,7 +169,7 @@ define('SCHAN_MAXW', 250);           // Width
 define('SCHAN_MAXH', 250);           // Height
 
 // Tripcode seed - Must not change once set!  (install.php generates a random one)
-define('SCHAN_TRIPSEED', 'c3acfa04da0e92b3d336de9f421824d4');
+define('SCHAN_TRIPSEED', '');
 
 // CAPTCHA - hCaptcha / reCAPTCHA
 define('SCHAN_HCAPTCHA_SITE', '');   // Site key

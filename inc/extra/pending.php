@@ -2,6 +2,7 @@
 if (!defined('SCHAN_BOARD')) {
 	die('');
 }
+require_once __DIR__ . '/storage.php';
 
 /*
  * Pending media / links approval.
@@ -10,9 +11,8 @@ if (!defined('SCHAN_BOARD')) {
  *   define('SCHAN_REQMODMEDIA', true);  // posts show pending.png instead of their media until approved
  *   define('SCHAN_REQMODLINKS', true);  // links show "(link pending approval)" until approved
  *
- * Posts stay visible. Which posts are pending is kept in pending-data.php in the
- * install root (a PHP file that starts with exit, so it can't be read over the web).
- * Staff posts are never held.
+ * Posts stay visible. Which posts are pending is kept in the database (<posts>_pending,
+ * keyed by board + post id). Staff posts are never held.
  */
 
 function pendingExtensionOn() {
@@ -27,93 +27,95 @@ function reqmodLinksEnabled() {
 	return pendingExtensionOn() && defined('SCHAN_REQMODLINKS') && SCHAN_REQMODLINKS;
 }
 
-function pendingFile() {
-	return dirname(dirname(__FILE__)) . '/pending-data.php';
+function pendingEntryFromRow($row) {
+	return array(
+		'media' => intval($row['media']),
+		'links' => intval($row['links']),
+		'board' => $row['board'],
+		'time' => intval($row['created']),
+	);
 }
 
-function pendingParse($raw) {
-	$nl = strpos($raw, "\n");
-	if ($nl === false) {
-		return array();
+// Pending entries of one board: post id => array('media' => 0|1, 'links' => 0|1, 'board' => slug, 'time' => ts)
+function pendingBoardMap($board = null, $reset = false) {
+	static $cache = array();
+	if ($board === null || $board === '') {
+		$board = function_exists('current_board') ? current_board() : '';
 	}
-	$data = json_decode(substr($raw, $nl + 1), true);
-	return is_array($data) ? $data : array();
-}
-
-// All pending entries: post id => array('media' => 0|1, 'links' => 0|1, 'board' => slug, 'time' => ts)
-function pendingAll($reset = false) {
-	static $cache = null;
 	if ($reset) {
-		$cache = null;
+		unset($cache[$board]);
 	}
 	if (!pendingExtensionOn()) {
 		return array();
 	}
-	if ($cache !== null) {
-		return $cache;
-	}
-
-	$cache = array();
-	$file = pendingFile();
-	if (is_readable($file)) {
-		$raw = @file_get_contents($file);
-		if ($raw !== false && $raw !== '') {
-			$cache = pendingParse($raw);
+	if (!isset($cache[$board])) {
+		$cache[$board] = array();
+		foreach (storeRows("SELECT * FROM `" . storeTable('pending') . "` WHERE `board` = '" . storeEsc($board) . "'") as $row) {
+			$cache[$board][(string)$row['post_id']] = pendingEntryFromRow($row);
 		}
 	}
-	return $cache;
+	return $cache[$board];
 }
 
-function pendingGet($id) {
-	$all = pendingAll();
-	$key = (string)intval($id);
-	return isset($all[$key]) ? $all[$key] : array();
-}
-
-// Read-modify-write under an exclusive lock
-function pendingUpdate($fn) {
-	$fh = @fopen(pendingFile(), 'c+');
-	if (!$fh) {
-		return false;
+// Every pending entry on every board, newest first: array of entries that also carry 'id'.
+function pendingRows() {
+	if (!pendingExtensionOn()) {
+		return array();
 	}
-	flock($fh, LOCK_EX);
+	$out = array();
+	foreach (storeRows("SELECT * FROM `" . storeTable('pending') . "` ORDER BY `post_id` DESC") as $row) {
+		$e = pendingEntryFromRow($row);
+		$e['id'] = intval($row['post_id']);
+		$out[] = $e;
+	}
+	return $out;
+}
 
-	$raw = stream_get_contents($fh);
-	$data = ($raw !== false && $raw !== '') ? pendingParse($raw) : array();
-	$data = $fn($data);
+// Compatibility: post id => entry across all boards (if two boards share an id, the last one wins).
+function pendingAll($reset = false) {
+	$all = array();
+	foreach (array_reverse(pendingRows()) as $e) {
+		$all[(string)$e['id']] = $e;
+	}
+	return $all;
+}
 
-	ftruncate($fh, 0);
-	rewind($fh);
-	fwrite($fh, "<?php exit; ?>\n" . json_encode($data));
-	fflush($fh);
-	flock($fh, LOCK_UN);
-	fclose($fh);
+function pendingGet($id, $board = null) {
+	$map = pendingBoardMap($board);
+	$key = (string)intval($id);
+	return isset($map[$key]) ? $map[$key] : array();
+}
 
-	pendingAll(true);
-	return true;
+function pendingSet($board, $id, $media, $links) {
+	$ok = storeExec("INSERT INTO `" . storeTable('pending') . "` (`board`, `post_id`, `media`, `links`, `created`) VALUES ('" . storeEsc($board) . "', " . intval($id) . ", " . ($media ? 1 : 0) . ", " . ($links ? 1 : 0) . ", " . time() . ") ON DUPLICATE KEY UPDATE `media` = VALUES(`media`), `links` = VALUES(`links`), `created` = VALUES(`created`)");
+	pendingBoardMap($board, true);
+	return $ok > 0;
+}
+
+function pendingDeleteRow($board, $id) {
+	storeExec("DELETE FROM `" . storeTable('pending') . "` WHERE `board` = '" . storeEsc($board) . "' AND `post_id` = " . intval($id));
+	pendingBoardMap($board, true);
 }
 
 // $what: 'media', 'links' or 'all'
-function pendingClear($id, $what = 'all') {
-	$key = (string)intval($id);
-	$entry = pendingGet($id);
+function pendingClear($id, $what = 'all', $board = null) {
+	if ($board === null || $board === '') {
+		$board = function_exists('current_board') ? current_board() : '';
+	}
+	$entry = pendingGet($id, $board);
 	if (empty($entry)) {
 		return;
 	}
-	pendingUpdate(function ($data) use ($key, $what) {
-		if (!isset($data[$key])) {
-			return $data;
-		}
-		if ($what === 'all') {
-			unset($data[$key]);
-			return $data;
-		}
-		$data[$key][$what] = 0;
-		if (empty($data[$key]['media']) && empty($data[$key]['links'])) {
-			unset($data[$key]);
-		}
-		return $data;
-	});
+	if ($what === 'all') {
+		pendingDeleteRow($board, $id);
+		return;
+	}
+	if ($what !== 'media' && $what !== 'links') {
+		return;
+	}
+	storeExec("UPDATE `" . storeTable('pending') . "` SET `" . $what . "` = 0 WHERE `board` = '" . storeEsc($board) . "' AND `post_id` = " . intval($id));
+	storeExec("DELETE FROM `" . storeTable('pending') . "` WHERE `board` = '" . storeEsc($board) . "' AND `post_id` = " . intval($id) . " AND `media` = 0 AND `links` = 0");
+	pendingBoardMap($board, true);
 }
 
 function hasExternalLinks($html) {
@@ -129,11 +131,7 @@ function pendingRegisterPost($post) {
 	}
 
 	$board = isset($post['board']) && $post['board'] !== '' ? $post['board'] : current_board();
-	$key = (string)intval($post['id']);
-	pendingUpdate(function ($data) use ($key, $media, $links, $board) {
-		$data[$key] = array('media' => $media ? 1 : 0, 'links' => $links ? 1 : 0, 'board' => $board, 'time' => time());
-		return $data;
-	});
+	pendingSet($board, $post['id'], $media, $links);
 
 	if ($media && $links) {
 		return __('Your media and links will be shown <b>once they have been approved</b>.');
@@ -144,11 +142,15 @@ function pendingRegisterPost($post) {
 	return __('Your links will be shown <b>once they have been approved</b>.');
 }
 
+function pendingPostBoard($post) {
+	return (isset($post['board']) && $post['board'] !== '') ? $post['board'] : null;
+}
+
 function postMediaPending($post) {
 	if (!isset($post['id'])) {
 		return false;
 	}
-	$e = pendingGet($post['id']);
+	$e = pendingGet($post['id'], pendingPostBoard($post));
 	return !empty($e['media']);
 }
 
@@ -156,7 +158,7 @@ function postLinksPending($post) {
 	if (!isset($post['id'])) {
 		return false;
 	}
-	$e = pendingGet($post['id']);
+	$e = pendingGet($post['id'], pendingPostBoard($post));
 	return !empty($e['links']);
 }
 
@@ -169,58 +171,44 @@ function pendingImageHTML($width = 150, $height = 150) {
 }
 
 // Posts waiting for media/links approval, newest first. Drops entries whose post no longer exists.
+// In global mode this lists every board (see pendingPostsAllBoards).
 function pendingPostsList($limit = 50) {
-	$all = pendingAll();
-	if (empty($all)) {
+	if (function_exists('manageGlobalMode') && manageGlobalMode()) {
+		return pendingPostsAllBoards($limit);
+	}
+
+	$board = current_board();
+	$map = pendingBoardMap($board);
+	if (empty($map)) {
 		return array();
 	}
 
-	$ids = array_keys($all);
+	$ids = array_keys($map);
 	rsort($ids, SORT_NUMERIC);
 
 	$posts = array();
-	$stale = array();
-	$global = function_exists('manageGlobalMode') && manageGlobalMode();
-	$board = current_board();
-
 	foreach ($ids as $id) {
+		if (count($posts) >= $limit) {
+			break;
+		}
 		$post = postByID($id);
 		if (empty($post)) {
-			$stale[] = (string)$id;
+			pendingDeleteRow($board, $id);
 			continue;
 		}
-		if (!$global && $board !== '' && isset($post['board']) && $post['board'] !== '' && $post['board'] !== $board) {
-			continue;
-		}
-		if (count($posts) >= $limit) {
-			continue;
-		}
-		$post['show_boardtag'] = $global;
+		$post['show_boardtag'] = false;
 		$posts[] = $post;
 	}
-
-	if (!empty($stale)) {
-		pendingUpdate(function ($data) use ($stale) {
-			foreach ($stale as $key) {
-				unset($data[$key]);
-			}
-			return $data;
-		});
-	}
-
 	return $posts;
 }
 
 // Pending posts from every board (for the manage "Pending approval" page), newest first.
 // Each post has ['board'] set, ['show_boardtag'] = true and ['pending'] = the entry.
 function pendingPostsAllBoards($limit = 100) {
-	$all = pendingAll();
-	if (empty($all) || !function_exists('allBoards')) {
+	$rows = pendingRows();
+	if (empty($rows) || !function_exists('allBoards')) {
 		return array();
 	}
-
-	$ids = array_keys($all);
-	rsort($ids, SORT_NUMERIC);
 
 	$slugs = array();
 	foreach (allBoards() as $b) {
@@ -229,22 +217,20 @@ function pendingPostsAllBoards($limit = 100) {
 
 	$previous = isset($GLOBALS['schan_forced_board']) ? $GLOBALS['schan_forced_board'] : null;
 	$posts = array();
-	$stale = array();
 
-	foreach ($ids as $id) {
-		$entry = $all[$id];
-		$slug = isset($entry['board']) ? $entry['board'] : '';
-		if ($slug === '' || !isset($slugs[$slug])) {
-			$stale[] = (string)$id;
-			continue;
-		}
+	foreach ($rows as $entry) {
 		if (count($posts) >= $limit) {
+			break;
+		}
+		$slug = $entry['board'];
+		if ($slug === '' || !isset($slugs[$slug])) {
+			pendingDeleteRow($slug, $entry['id']);
 			continue;
 		}
 		$GLOBALS['schan_forced_board'] = $slug;
-		$post = postByID($id);
+		$post = postByID($entry['id']);
 		if (empty($post)) {
-			$stale[] = (string)$id;
+			pendingDeleteRow($slug, $entry['id']);
 			continue;
 		}
 		$post['board'] = $slug;
@@ -254,18 +240,10 @@ function pendingPostsAllBoards($limit = 100) {
 	}
 	$GLOBALS['schan_forced_board'] = $previous;
 
-	if (!empty($stale)) {
-		pendingUpdate(function ($data) use ($stale) {
-			foreach ($stale as $key) {
-				unset($data[$key]);
-			}
-			return $data;
-		});
-	}
-
 	return $posts;
 }
 
 function pendingCount() {
-	return count(pendingAll());
+	$row = storeRow("SELECT COUNT(*) AS c FROM `" . storeTable('pending') . "`");
+	return $row === null ? 0 : intval($row['c']);
 }

@@ -1,89 +1,58 @@
 <?php
+require_once __DIR__ . '/storage.php';
 /*
  * multiple files per post (up to SCHAN_MAXFILES, default 4)
  *
  * - the first file stays in the normal post columns so thumbnails, catalog, moderation etc keep working
- * - files 2-4 are described in .postmedia.php in the install dir (no db changes), it starts with a
- *   PHP exit line so it can't be downloaded. layout: array("board:postid" => array(record, ...))
+ * - files 2-4 are described in the database (<posts>_media table, one row per file)
  */
 
 if (!defined('SCHAN_MAXFILES')) {
 	define('SCHAN_MAXFILES', 4);
 }
-define('SCHAN_MEDIA_HEADER', "<?php http_response_code(404); exit; ?>\n");
-
-function mediaStorePath() {
-	return dirname(__DIR__) . '/.postmedia.php';
-}
+// storage: extra files live in the database (<posts>_media), one row per file, keyed by board + post id + position
 
 function mediaStoreWritable() {
-	$p = mediaStorePath();
-	return is_file($p) ? is_writable($p) : is_writable(dirname($p));
-}
-
-function mediaStoreParse($raw) {
-	if (!is_string($raw) || $raw === '') {
-		return array();
-	}
-	$nl = strpos($raw, "\n");
-	$data = json_decode($nl === false ? '' : substr($raw, $nl + 1), true);
-	return is_array($data) ? $data : array();
-}
-
-function mediaStoreLoad($force = false) {
-	static $cache = null;
-	if ($cache !== null && !$force) {
-		return $cache;
-	}
-	$cache = array();
-	$fh = @fopen(mediaStorePath(), 'r');
-	if ($fh) {
-		flock($fh, LOCK_SH);
-		$cache = mediaStoreParse(stream_get_contents($fh));
-		flock($fh, LOCK_UN);
-		fclose($fh);
-	}
-	return $cache;
-}
-
-// runs $fn(&$data) under an exclusive lock; writes back when it returns true
-function mediaStoreMutate($fn) {
-	$fh = @fopen(mediaStorePath(), 'c+');
-	if (!$fh) {
-		return false;
-	}
-	if (!flock($fh, LOCK_EX)) {
-		fclose($fh);
-		return false;
-	}
-	$data = mediaStoreParse(stream_get_contents($fh));
-	$ok = true;
-	if ($fn($data) === true) {
-		$ok = ftruncate($fh, 0) && rewind($fh) && (fwrite($fh, SCHAN_MEDIA_HEADER . json_encode($data)) !== false);
-		fflush($fh);
-	}
-	flock($fh, LOCK_UN);
-	fclose($fh);
-	mediaStoreLoad(true);
-	return $ok;
+	return true;
 }
 
 function mediaKey($board, $id) {
 	return $board . ':' . intval($id);
 }
 
-function mediaExtrasFor($board, $id) {
-	$data = mediaStoreLoad();
+function mediaExtrasFor($board, $id, $reset = false) {
+	static $cache = array();
 	$key = mediaKey($board, $id);
-	return (isset($data[$key]) && is_array($data[$key])) ? $data[$key] : array();
+	if ($reset) {
+		unset($cache[$key]);
+	}
+	if (!isset($cache[$key])) {
+		$cache[$key] = array();
+		$rows = storeRows("SELECT * FROM `" . storeTable('media') . "` WHERE `board` = '" . storeEsc($board) . "' AND `post_id` = " . intval($id) . " ORDER BY `position` ASC");
+		foreach ($rows as $r) {
+			$cache[$key][] = array(
+				'file' => $r['file'], 'orig' => $r['orig'], 'hex' => $r['file_hex'],
+				'size' => $r['size_text'], 'w' => (int)$r['w'], 'h' => (int)$r['h'],
+				'thumb' => $r['thumb'], 'tw' => (int)$r['tw'], 'th' => (int)$r['th'],
+				'spoiler' => (int)$r['spoiler'],
+			);
+		}
+	}
+	return $cache[$key];
 }
 
 function mediaSaveExtras($board, $id, $records) {
-	$key = mediaKey($board, $id);
-	return mediaStoreMutate(function (&$data) use ($key, $records) {
-		$data[$key] = $records;
-		return true;
-	});
+	storeEnsure();
+	$table = storeTable('media');
+	storeQuery("DELETE FROM `" . $table . "` WHERE `board` = '" . storeEsc($board) . "' AND `post_id` = " . intval($id));
+	$ok = true;
+	$pos = 0;
+	foreach ($records as $r) {
+		$pos++;
+		$ok = (bool)storeQuery("INSERT INTO `" . $table . "` (`board`, `post_id`, `position`, `file`, `orig`, `file_hex`, `size_text`, `w`, `h`, `thumb`, `tw`, `th`, `spoiler`) VALUES ('" . storeEsc($board) . "', " . intval($id) . ", " . $pos . ", '" . storeEsc(isset($r['file']) ? $r['file'] : '') . "', '" . storeEsc(isset($r['orig']) ? $r['orig'] : '') . "', '" . storeEsc(isset($r['hex']) ? $r['hex'] : '') . "', '" . storeEsc(isset($r['size']) ? $r['size'] : '') . "', " . intval(isset($r['w']) ? $r['w'] : 0) . ", " . intval(isset($r['h']) ? $r['h'] : 0) . ", '" . storeEsc(isset($r['thumb']) ? $r['thumb'] : '') . "', " . intval(isset($r['tw']) ? $r['tw'] : 0) . ", " . intval(isset($r['th']) ? $r['th'] : 0) . ", " . (!empty($r['spoiler']) ? 1 : 0) . ")") && $ok;
+	}
+	mediaExtrasFor($board, $id, true);
+	return $ok;
 }
 
 // deletes the extra files of a post and forgets them. Called from deletePostImages()
@@ -100,14 +69,8 @@ function mediaDeleteExtras($board, $id) {
 			@unlink($board . '/thumb/' . basename($r['thumb']));
 		}
 	}
-	$key = mediaKey($board, $id);
-	mediaStoreMutate(function (&$data) use ($key) {
-		if (!isset($data[$key])) {
-			return false;
-		}
-		unset($data[$key]);
-		return true;
-	});
+	storeExec("DELETE FROM `" . storeTable('media') . "` WHERE `board` = '" . storeEsc($board) . "' AND `post_id` = " . intval($id));
+	mediaExtrasFor($board, $id, true);
 }
 
 // posting
@@ -184,9 +147,6 @@ function mediaCheckUpload($f) {
 function mediaAttachExtras($post, $uploads, $spoiler) {
 	if (empty($uploads)) {
 		return array();
-	}
-	if (!mediaStoreWritable()) {
-		fancyDie(__('Uploading more than one file is not available right now: the server cannot write .postmedia.php. Please upload a single file.'));
 	}
 	$board = isset($post['board']) && $post['board'] !== '' ? $post['board'] : current_board();
 	$records = array();

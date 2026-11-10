@@ -1158,6 +1158,113 @@ function manageInfo($text) {
 	return '<div class="manageinfo">' . $text . '</div>';
 }
 
-// static pages (rules, faq...), written as <name>.html in the install dir
-// same head / style list / board bar / banner / options / footer as the boards
-// stored in .pages.php (exits right away so it can't be downloaded), edit from ?pages
+// $edit: null = list, '' = new page form, a name = edit that page
+function manageStaticPagesPage($edit = null) {
+	$pages = pagesLoad();
+	$h = function ($v) {
+		return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
+	};
+
+	if ($edit !== null) {
+		$is_new = ($edit === '');
+		$p = $is_new ? array('title' => '', 'content' => '', 'css' => '', 'header' => 1, 'banner' => 1, 'boardbar' => 1) : $pages[$edit];
+		if (!empty($GLOBALS['schan_page_form']) && is_array($GLOBALS['schan_page_form'])) {
+			$p = array_merge($p, $GLOBALS['schan_page_form']);
+		}
+		$slug_value = $is_new ? (isset($p['slug']) ? $p['slug'] : '') : $edit;
+		$chk = function ($name, $label, $on) use ($h) {
+			return '<label style="display:block;margin:2px 0;"><input type="checkbox" name="' . $name . '" value="1"' . ($on ? ' checked' : '') . '> ' . $h($label) . '</label>';
+		};
+		$out = '<fieldset><legend>' . ($is_new ? __('New page') : sprintf(__('Edit page: %s'), $h($p['title']))) . '</legend>'
+			. '<form id="schan" name="schan" method="post" action="?manage&amp;pages">'
+			. '<input type="hidden" name="page_action" value="save"><input type="hidden" name="page_new" value="' . ($is_new ? '1' : '0') . '">'
+			. '<table>'
+			. '<tr><td><b>' . __('Title') . '</b></td><td><input type="text" name="page_title" value="' . $h($p['title']) . '" size="40" maxlength="100"></td></tr>'
+			. '<tr><td><b>' . __('Name') . '</b></td><td><input type="text" name="page_slug" value="' . $h($slug_value) . '" size="20" maxlength="40"' . ($is_new ? '' : ' readonly') . '> .html'
+			. '<br><small>' . ($is_new ? __('Used for the address, e.g. "faq" becomes faq.html. Lowercase letters, numbers, - and _.') : __('The name cannot be changed. Make a new page and delete this one to rename it.')) . '</small></td></tr>'
+			. '<tr><td valign="top"><b>' . __('Show') . '</b></td><td>'
+			. $chk('page_header', __('Page title at the top'), !empty($p['header']))
+			. $chk('page_banner', __('Banner'), !empty($p['banner']))
+			. $chk('page_boardbar', __('Board bar'), !empty($p['boardbar']))
+			. '</td></tr>'
+			. '</table>'
+			. '<p><b>' . __('Content') . '</b> <small>(' . __('HTML is allowed. The head, style list, options window and footer are added automatically.') . ')</small></p>'
+			. '<textarea name="page_content" rows="22" style="width:100%;box-sizing:border-box;font-family:monospace;font-size:12px;" spellcheck="false">' . $h($p['content']) . '</textarea>'
+			. '<p><b>' . __('Custom CSS') . '</b> <small>(' . __('optional, applies to this page only') . ')</small></p>'
+			. '<textarea name="page_css" rows="7" style="width:100%;box-sizing:border-box;font-family:monospace;font-size:12px;" spellcheck="false">' . $h($p['css']) . '</textarea><br><br>'
+			. '<input type="submit" value="' . __('Save') . '" class="managebutton"> <a href="?manage&amp;pages">[' . __('Cancel') . ']</a>'
+			. '</form>';
+		if (!$is_new) {
+			$out .= '<form method="post" action="?manage&amp;pages" style="margin-top:10px;" onsubmit="return confirm(\'' . __('Delete this page?') . '\');">'
+				. '<input type="hidden" name="page_action" value="delete"><input type="hidden" name="page_slug" value="' . $h($edit) . '">'
+				. '<input type="submit" value="' . __('Delete page') . '" class="managebutton"></form>';
+		}
+		return $out . '</fieldset>';
+	}
+
+	$rows = '';
+	foreach ($pages as $slug => $page) {
+		$slug = (string)$slug;
+		$url = installRootURL() . '/' . $slug . '.html';
+		$rows .= '<tr><td>' . $h($page['title']) . '</td><td><a href="' . $h($url) . '" target="_blank">' . $h($slug) . '.html</a></td>'
+			. '<td>' . (isset($page['updated']) ? formatDate($page['updated']) : '') . '</td>'
+			. '<td><a href="?manage&amp;pages&amp;pageedit=' . rawurlencode($slug) . '">[' . __('Edit') . ']</a></td></tr>';
+	}
+	if ($rows === '') {
+		$rows = '<tr><td colspan="4"><i>' . __('No pages yet.') . '</i></td></tr>';
+	}
+	return '<fieldset><legend>' . __('Pages') . '</legend>'
+		. '<p>' . __('Static pages such as rules or an FAQ. Each one is written as <name>.html with the same header, board bar, style list and footer as the boards.') . '</p>'
+		. '<table border="1"><tr><th>' . __('Title') . '</th><th>' . __('Address') . '</th><th>' . __('Updated') . '</th><th>&nbsp;</th></tr>' . $rows . '</table><br>'
+		. '<a href="?manage&amp;pages&amp;pagenew=1" class="managebtn" style="text-decoration:none;">[' . __('New page') . ']</a> '
+		. '<form method="post" action="?manage&amp;pages" style="display:inline;"><input type="hidden" name="page_action" value="rebuild"><input type="submit" value="' . __('Rebuild all pages') . '" class="managebutton"></form>'
+		. '</fieldset>';
+}
+
+function manageCountriesPage() {
+	$blocked = blockedCountries();
+
+	$rows = '';
+	foreach ($blocked as $c) {
+		$rows .= '<tr><td>' . flagImageHTML(strtolower($c)) . '</td><td>' . htmlentities($c, ENT_QUOTES) . '</td><td>' . htmlentities(countryNameFor($c), ENT_QUOTES) . '</td>'
+			. '<td><form method="post" action="?manage&amp;countries" style="display:inline;">'
+			. '<input type="hidden" name="country_action" value="remove">'
+			. '<input type="hidden" name="country_code" value="' . htmlentities($c, ENT_QUOTES) . '">'
+			. '<input type="submit" value="' . __('Unblock') . '" class="managebutton"></form></td></tr>';
+	}
+	if ($rows === '') {
+		$rows = '<tr><td colspan="4"><i>' . __('No countries are blocked.') . '</i></td></tr>';
+	}
+
+	$options = '';
+	$dir = dirname(__DIR__) . '/static/flags/';
+	if (is_dir($dir)) {
+		$seen = array();
+		foreach ((array)@scandir($dir) as $f) {
+			if (preg_match('/^([A-Za-z]{2})\.(png|gif|svg)$/', $f, $m)) {
+				$seen[strtoupper($m[1])] = true;
+			}
+		}
+		ksort($seen);
+		foreach (array_keys($seen) as $c) {
+			$options .= '<option value="' . $c . '">' . htmlentities(countryNameFor($c), ENT_QUOTES) . '</option>';
+		}
+	}
+
+	$notice = '';
+	if (!is_readable(flagDatabasePath()) && !(defined('SCHAN_CLOUDFLARE') && SCHAN_CLOUDFLARE)) {
+		$notice = '<p><b>' . __('Warning: no GeoIP database was found, so countries cannot be detected and nothing will be blocked.') . '</b></p>';
+	}
+
+	return '<fieldset><legend>' . __('Blocked countries') . '</legend>'
+		. '<p>' . __('Visitors from these countries cannot post (new threads or replies) on any board. The country comes from the GeoIP database, or from Cloudflare when that is enabled. Visitors whose country cannot be determined are allowed. Logged-in staff are never blocked.') . '</p>'
+		. $notice
+		. '<table border="1"><tr><th>&nbsp;</th><th>' . __('Code') . '</th><th>' . __('Country') . '</th><th>&nbsp;</th></tr>' . $rows . '</table><br>'
+		. '<form id="schan" name="schan" method="post" action="?manage&amp;countries">'
+		. '<input type="hidden" name="country_action" value="add">'
+		. '<datalist id="countrycodes">' . $options . '</datalist>'
+		. __('Add country codes') . ': <input type="text" name="codes" list="countrycodes" size="30" autocomplete="off" placeholder="RU, CN, ..."> '
+		. '<input type="submit" value="' . __('Block') . '" class="managebutton">'
+		. '<br><small>' . __('Two-letter ISO codes (e.g. US, DE, RU), separated by commas or spaces.') . '</small>'
+		. '</form></fieldset>';
+}

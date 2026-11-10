@@ -455,7 +455,93 @@ var schanDefaults = {"hover":true};</script>
 			return true;
 		}
 		</script>
-		
+		<script type="text/javascript">
+function pollAddOption(){
+	var box=document.getElementById("pollopts");
+	if(!box){return false;}
+	var n=box.getElementsByTagName("input").length;
+	if(n>=8){return false;}
+	var i=document.createElement("input");
+	i.type="text";i.name="poll[]";i.size=28;i.maxLength=60;i.autocomplete="off";
+	i.placeholder="Option "+(n+1);
+	box.appendChild(i);
+	box.appendChild(document.createElement("br"));
+	return false;
+}
+function pollBoard(){return (typeof currentBoard==="string")?currentBoard:"";}
+function pollBoardFor(id){var e=document.getElementById("poll"+id),b=e?e.getAttribute("data-board"):null;return b?b:pollBoard();}
+function pollURL(q,b){
+	var root=(typeof schanRoot==="string")?schanRoot:"";
+	return root+"/imgboard.php?"+q+"&board="+encodeURIComponent(b!==undefined&&b!==null?b:pollBoard());
+}
+function pollRequest(url,body,cb){
+	var x=new XMLHttpRequest();
+	x.open(body?"POST":"GET",url,true);
+	if(body){x.setRequestHeader("Content-Type","application/x-www-form-urlencoded");}
+	x.onreadystatechange=function(){
+		if(x.readyState!==4){return;}
+		var r=null;
+		try{r=JSON.parse(x.responseText);}catch(e){}
+		cb(r);
+	};
+	x.send(body||null);
+}
+/* Writes "= count" beside each option. Once this IP has voted, the options go grey and locked. */
+function pollApply(id,r){
+	if(!r||!r.options){return;}
+	for(var i=0;i<r.options.length;i++){
+		var c=document.getElementById("pollcount"+id+"_"+i);
+		if(c){c.textContent=" = "+(r.votes[i]||0);}
+	}
+	if(r.voted>=0){
+		var radios=document.getElementsByName("pollopt"+id);
+		for(var j=0;j<radios.length;j++){
+			radios[j].checked=(parseInt(radios[j].value,10)===r.voted);
+			radios[j].disabled=true;
+		}
+		var opts=document.getElementById("polloptions"+id);
+		var btns=document.getElementById("pollbuttons"+id);
+		if(opts){opts.style.opacity="0.5";}
+		if(btns){btns.style.display="none";}
+	}
+}
+function pollVote(id){
+	var radios=document.getElementsByName("pollopt"+id),v=-1;
+	for(var i=0;i<radios.length;i++){if(radios[i].checked){v=radios[i].value;break;}}
+	if(v<0){alert("Choose an option first.");return;}
+	var pb=pollBoardFor(id);
+	pollRequest(pollURL("vote",pb),"poll="+id+"&option="+encodeURIComponent(v)+"&board="+encodeURIComponent(pb),function(r){
+		if(!r){alert("Your vote could not be recorded.");return;}
+		if(r.error){alert(r.error);}
+		pollApply(id,r);
+	});
+}
+function pollResults(id){
+	pollRequest(pollURL("pollresults="+id,pollBoardFor(id)),null,function(r){
+		if(r&&r.options){pollApply(id,r);}
+		else{alert((r&&r.error)?r.error:"Could not load the results.");}
+	});
+}
+/* On page load, polls this IP already voted in are shown greyed out with their counts */
+function pollInit(){
+	if(!document.querySelectorAll){return;}
+	var els=document.querySelectorAll("[data-poll]"),groups={},any=false;
+	for(var i=0;i<els.length;i++){
+		var b=els[i].getAttribute("data-board")||pollBoard();
+		(groups[b]=groups[b]||[]).push(els[i].getAttribute("data-poll"));any=true;
+	}
+	if(!any){return;}
+	for(var g in groups){if(!groups.hasOwnProperty(g)){continue;}(function(g){
+		pollRequest(pollURL("pollstatus="+groups[g].join(","),g),null,function(r){
+			if(!r){return;}
+			for(var k in r){
+				if(r.hasOwnProperty(k)&&r[k]&&r[k].options&&r[k].voted>=0){pollApply(k,r[k]);}
+			}
+		});
+	})(g);}
+}
+if(document.addEventListener){document.addEventListener("DOMContentLoaded",pollInit,false);}
+</script>
 		<script type="text/javascript">
 		window.expandFile = function(e, id){
 			if (e && (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1)) { return true; }
@@ -625,7 +711,7 @@ var schanDefaults = {"hover":true};</script>
 		</script>
 		
 	</head>	<body>
-		<div class="boardbar" style="position:absolute;">[ <span class="boardlinks"><a href="/o/" class="current" title="overboard">o</a> / <a href="/b/" title="random">b</a></span> ]</div>
+		<div class="boardbar" style="position:absolute;">[ <span class="boardlinks"><a href="/o/" class="current" title="overboard">o</a> / <a href="/b/">b</a></span> ]</div>
 		<div class="adminbar">
 			[<a href="catalog.html" style="text-decoration: underline;">Catalog</a>]
 			[<a href="/mod.php" style="text-decoration: underline;">Manage</a>]
@@ -846,18 +932,18 @@ var schanDefaults = {"hover":true};</script>
 })();
 </script>
 		<div class="logo"><span class="boardslug">/o/</span> &middot; <span class="boardtitle">overboard</span><div class="boarddesc" style="font-size:0.5em;text-align:center;">Latest threads from every board</div><div class="boardbanner" style="text-align:center;margin:8px 0;">
-<a href="#" id="boardbanner12link" style="display:inline-block;cursor:pointer;"><img id="boardbanner12" src="" width="300" height="100" alt="Banner" style="border:0;max-width:100%;height:auto;display:block;"></a>
+<a href="#" id="boardbanner5link" style="display:inline-block;cursor:pointer;"><img id="boardbanner5" src="" width="300" height="100" alt="Banner" style="border:0;max-width:100%;height:auto;display:block;"></a>
 <script type="text/javascript">
 (function () {
 	var banners = ["/static/banners/banner%20test.png"], cur = -1;
-	var img = document.getElementById("boardbanner12");
+	var img = document.getElementById("boardbanner5");
 	function show() {
 		var i;
 		do { i = Math.floor(Math.random() * banners.length); } while (i === cur && banners.length > 1);
 		cur = i;
 		img.src = banners[i];
 	}
-	document.getElementById("boardbanner12link").addEventListener("click", function (e) {
+	document.getElementById("boardbanner5link").addEventListener("click", function (e) {
 		e.preventDefault();
 		show();
 	});
@@ -1042,54 +1128,12 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 		<form id="delform" action="../imgboard.php?delete" method="post">
 		<input type="hidden" name="board" value="o">
 		<div id="posts">
-		<div class="catalogpost" style="max-width: 152px;">
-	<a href="/b/res/46.html">
-		<img src="/b/thumb/1792946446518s.png" alt="46" width="152" height="250" border="0">
-	</a><br>
-	<b>0</b><br>
-	<span class="boardtag">[b]</span> rtest
-</div><div class="catalogpost" style="max-width: 221px;">
-	<a href="/b/res/45.html">
-		<img src="/b/thumb/1792944148992s.png" alt="45" width="221" height="250" border="0">
-	</a><br>
-	<b>0</b><br>
-	<span class="boardtag">[b]</span> tesy
-</div><div class="catalogpost" style="max-width: 250px;">
-	<a href="/b/res/44.html">
-		<img src="/b/thumb/1792943828135s.jpg" alt="44" width="250" height="205" border="0">
+		<div class="catalogpost" style="max-width: 250px;">
+	<a href="/b/res/1.html">
+		<img src="/b/thumb/1794314898952s.webp" alt="1" width="250" height="250" border="0">
 	</a><br>
 	<b>0</b><br>
 	<span class="boardtag">[b]</span> test
-</div><div class="catalogpost" style="max-width: 250px;">
-	<a href="/b/res/43.html">
-		<img src="/b/thumb/1792943744209s.gif" alt="43" width="250" height="167" border="0">
-	</a><br>
-	<b>0</b><br>
-	<span class="boardtag">[b]</span> testy
-</div><div class="catalogpost" style="max-width: 250px;">
-	<a href="/b/res/42.html">
-		<img src="/b/thumb/1792943469998s.jpg" alt="42" width="250" height="250" border="0">
-	</a><br>
-	<b>0</b><br>
-	<span class="boardtag">[b]</span> test
-</div><div class="catalogpost" style="max-width: 167px;">
-	<a href="/b/res/41.html">
-		<img src="/b/thumb/1792943099562s.jpg" alt="41" width="167" height="250" border="0">
-	</a><br>
-	<b>0</b><br>
-	<span class="boardtag">[b]</span> test
-</div><div class="catalogpost" style="max-width: 250px;">
-	<a href="/b/res/22.html">
-		<img src="/b/thumb/1792862461581s.gif" alt="22" width="250" height="230" border="0">
-	</a><br>
-	<b>17</b><br>
-	<span class="boardtag">[b]</span> test
-</div><div class="catalogpost" style="max-width: 250px;">
-	<a href="/b/res/21.html">
-		<img src="/b/thumb/1792829559903s.jpg" alt="21" width="250" height="250" border="0">
-	</a><br>
-	<b>0</b><br>
-	<span class="boardtag">[b]</span> testnigg
 </div>
 		</div>
 				<hr>

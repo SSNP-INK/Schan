@@ -136,6 +136,9 @@ function countBoardThreads($slug) {
 function deletePostsByBoard($slug) {
 	global $link;
 	mysqli_query($link, "DELETE FROM `" . SCHAN_DBPOSTS . "` WHERE `board` = '" . mysqli_real_escape_string($link, $slug) . "'");
+	if (function_exists('storePurgeBoard')) {
+		storePurgeBoard($slug); // pending / spoiler / trusted / extra media / poll rows of the board
+	}
 }
 
 function deleteReportsByBoard($slug) {

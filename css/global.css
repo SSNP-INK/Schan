@@ -486,3 +486,27 @@ div.logo div.boarddesc {
 	}
 }
 
+
+/* ---------- Force centering (beats the theme stylesheets that load after this file) ---------- */
+.postarea {
+	text-align: center !important;
+	width: 100% !important;
+	float: none !important;
+}
+
+.postarea table,
+.postarea table.postform {
+	margin-left: auto !important;
+	margin-right: auto !important;
+	float: none !important;
+	text-align: left;
+}
+
+.footer {
+	text-align: center !important;
+}
+
+hr {
+	margin-left: auto !important;
+	margin-right: auto !important;
+}

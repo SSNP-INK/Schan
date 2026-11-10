@@ -14,6 +14,7 @@ require_once __DIR__ . '/element/boards.php';
 require_once __DIR__ . '/element/json.php';
 require_once __DIR__ . '/element/post_form.php';
 require_once __DIR__ . '/element/boardlinks.php';
+require_once __DIR__ . '/element/options.php';
 require_once __DIR__ . '/element/hover.php';
 
 // optional setting from settings.php, the constant if it's defined else $default

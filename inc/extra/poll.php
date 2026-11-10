@@ -2,6 +2,7 @@
 if (!defined('SCHAN_BOARD')) {
 	die('');
 }
+require_once __DIR__ . '/storage.php';
 
 /*
  * Polls: 2-8 options, one vote per IP address.
@@ -9,9 +10,10 @@ if (!defined('SCHAN_BOARD')) {
  * Optional setting in settings.php (polls are ON if it isn't defined):
  *   define('SCHAN_POLLS', false);   // turn polls off
  *
- * Each poll is stored in <board>/polls/<post id>.php. Polls left over in the old root polls/
- * folder are moved into their board's folder automatically the first time they are loaded
- * (or when the board is rebuilt). The file starts with exit so it can't be read over the web. Voters are stored as salted hashes, not raw IPs.
+ * Each poll is stored in the database: <posts>_polls (options) and <posts>_poll_votes (one row per
+ * voter, primary key board + post + voter, so one vote per IP is enforced by the database). Voters are
+ * stored as salted hashes, not raw IPs. Old poll files (<board>/polls/*.php or the root polls/ folder) are
+ * imported once automatically and renamed to *.imported.
  * Poll counts are never written into the static pages; the Vote / Results buttons load
  * them live from imgboard.php?vote and imgboard.php?pollresults=<id>.
  */
@@ -34,77 +36,32 @@ function pollBoardSlug($board = null) {
 	return (is_string($board) && preg_match('/^[a-z0-9_-]{1,64}$/', $board)) ? $board : '';
 }
 
-function pollDir($board = null) {
-	$board = pollBoardSlug($board);
-	return dirname(dirname(__FILE__)) . '/' . ($board !== '' ? $board . '/' : '') . 'polls';
-}
-
-// Where polls used to live (single folder in the install root)
-function pollLegacyPath($id) {
-	return dirname(dirname(__FILE__)) . '/polls/' . intval($id) . '.php';
-}
-
-function pollPath($id, $board = null) {
-	return pollDir($board) . '/' . intval($id) . '.php';
-}
-
-// Path of an existing poll file. A poll still in the old root folder is moved into the board's
-// own folder, but only if the post really belongs to that board.
-function pollLocate($id, $board = null) {
-	$board = pollBoardSlug($board);
-	$path = pollPath($id, $board);
-	if ($board === '' || is_file($path)) {
-		return $path;
-	}
-	$legacy = pollLegacyPath($id);
-	if (!is_file($legacy)) {
-		return $path;
-	}
-	$post = function_exists('postByID') ? postByID(intval($id)) : null;
-	if (empty($post) || (isset($post['board']) && $post['board'] !== '' && $post['board'] !== $board)) {
-		return $legacy;
-	}
-	if (!is_dir(pollDir($board))) {
-		@mkdir(pollDir($board), 0755, true);
-	}
-	return @rename($legacy, $path) ? $path : $legacy;
-}
-
-function pollParse($raw) {
-	$nl = strpos($raw, "\n");
-	if ($nl === false) {
-		return null;
-	}
-	$poll = json_decode(substr($raw, $nl + 1), true);
-	return (is_array($poll) && isset($poll['options']) && isset($poll['votes'])) ? $poll : null;
-}
-
-// Returns the poll array for a post, or null
-function pollGet($id, $board = null) {
-	static $cache = array();
+// Returns array('options' => [...], 'votes' => [...counts], 'created' => ts) for a post, or null.
+// $withVotes = false skips the vote count query (enough for drawing the poll).
+function pollGet($id, $board = null, $withVotes = true) {
 	$id = intval($id);
 	$board = pollBoardSlug($board);
-	$ck = $board . ':' . $id;
-	if (array_key_exists($ck, $cache)) {
-		return $cache[$ck];
+	if ($board === '') {
+		return null;
 	}
-
-	$cache[$ck] = null;
-	$path = pollLocate($id, $board);
-	if (is_readable($path)) {
-		$raw = @file_get_contents($path);
-		if ($raw !== false && $raw !== '') {
-			$cache[$ck] = pollParse($raw);
+	$row = storeRow("SELECT * FROM `" . storeTable('polls') . "` WHERE `board` = '" . storeEsc($board) . "' AND `post_id` = " . $id . " LIMIT 1");
+	if ($row === null) {
+		return null;
+	}
+	$options = json_decode($row['options'], true);
+	if (!is_array($options) || empty($options)) {
+		return null;
+	}
+	$votes = array_fill(0, count($options), 0);
+	if ($withVotes) {
+		foreach (storeRows("SELECT `opt`, COUNT(*) AS c FROM `" . storeTable('poll_votes') . "` WHERE `board` = '" . storeEsc($board) . "' AND `post_id` = " . $id . " GROUP BY `opt`") as $v) {
+			$o = intval($v['opt']);
+			if (isset($votes[$o])) {
+				$votes[$o] = intval($v['c']);
+			}
 		}
 	}
-	return $cache[$ck];
-}
-
-function pollWriteHandle($fh, $poll) {
-	ftruncate($fh, 0);
-	rewind($fh);
-	fwrite($fh, "<?php exit; ?>\n" . json_encode($poll));
-	fflush($fh);
+	return array('options' => array_values($options), 'votes' => $votes, 'created' => intval($row['created']));
 }
 
 // Cleans the submitted option list. Returns array of escaped option strings.
@@ -141,56 +98,49 @@ function pollCreate($id, $options, $board = null) {
 	if ($board === '') {
 		return false;
 	}
-	if (!is_dir(pollDir($board))) {
-		@mkdir(pollDir($board), 0755, true);
-	}
-	$fh = @fopen(pollPath($id, $board), 'c+');
-	if (!$fh) {
-		return false;
-	}
-	flock($fh, LOCK_EX);
-	pollWriteHandle($fh, array(
-		'options' => array_values($options),
-		'votes' => array_fill(0, count($options), 0),
-		'voters' => new stdClass(),
-		'created' => time(),
-	));
-	flock($fh, LOCK_UN);
-	fclose($fh);
-	return true;
+	storeEnsure();
+	storeQuery("DELETE FROM `" . storeTable('poll_votes') . "` WHERE `board` = '" . storeEsc($board) . "' AND `post_id` = " . intval($id));
+	return (bool)storeQuery("INSERT INTO `" . storeTable('polls') . "` (`board`, `post_id`, `options`, `created`) VALUES ('" . storeEsc($board) . "', " . intval($id) . ", '" . storeEsc(json_encode(array_values($options))) . "', " . time() . ") ON DUPLICATE KEY UPDATE `options` = VALUES(`options`), `created` = VALUES(`created`)");
 }
 
 function pollDelete($id, $board = null) {
-	foreach (array(pollPath($id, $board), pollLegacyPath($id)) as $path) {
-		if (is_file($path)) {
-			@unlink($path);
-		}
+	$board = pollBoardSlug($board);
+	if ($board === '') {
+		return;
 	}
+	storeExec("DELETE FROM `" . storeTable('polls') . "` WHERE `board` = '" . storeEsc($board) . "' AND `post_id` = " . intval($id));
+	storeExec("DELETE FROM `" . storeTable('poll_votes') . "` WHERE `board` = '" . storeEsc($board) . "' AND `post_id` = " . intval($id));
 }
 
 function pollVoterKey() {
 	return substr(hash('sha256', SCHAN_TRIPSEED . '|poll|' . remoteAddress()), 0, 40);
 }
 
+// Option this IP voted for on a poll, or -1
+function pollVotedOption($id, $board = null) {
+	$board = pollBoardSlug($board);
+	if ($board === '') {
+		return -1;
+	}
+	$row = storeRow("SELECT `opt` FROM `" . storeTable('poll_votes') . "` WHERE `board` = '" . storeEsc($board) . "' AND `post_id` = " . intval($id) . " AND `voter` = '" . storeEsc(pollVoterKey()) . "' LIMIT 1");
+	return $row === null ? -1 : intval($row['opt']);
+}
+
 // Public view of a poll: options, counts, and which option this IP voted for (-1 if none)
-function pollResultsData($id, $poll = null) {
+function pollResultsData($id, $poll = null, $board = null) {
 	if ($poll === null) {
-		$poll = pollGet($id);
+		$poll = pollGet($id, $board);
 	}
 	if (empty($poll)) {
 		return array('error' => __('Poll not found.'));
 	}
-
-	$voters = isset($poll['voters']) ? (array)$poll['voters'] : array();
-	$key = pollVoterKey();
-	$voted = isset($voters[$key]) ? intval($voters[$key]) : -1;
 
 	return array(
 		'id' => intval($id),
 		'options' => $poll['options'],
 		'votes' => array_map('intval', $poll['votes']),
 		'total' => array_sum($poll['votes']),
-		'voted' => $voted,
+		'voted' => pollVotedOption($id, $board),
 	);
 }
 
@@ -212,44 +162,25 @@ function pollHandleVote() {
 	}
 
 	$board = pollBoardSlug(isset($post['board']) ? $post['board'] : null);
-	$path = pollLocate($id, $board);
-	if (!is_readable($path)) {
-		return array('error' => __('Poll not found.'));
-	}
-
-	$fh = @fopen($path, 'c+');
-	if (!$fh) {
-		return array('error' => __('Could not record your vote.'));
-	}
-	flock($fh, LOCK_EX);
-
-	$raw = stream_get_contents($fh);
-	$poll = ($raw !== false && $raw !== '') ? pollParse($raw) : null;
+	$poll = pollGet($id, $board, false);
 	if (empty($poll)) {
-		flock($fh, LOCK_UN);
-		fclose($fh);
 		return array('error' => __('Poll not found.'));
 	}
 
-	$voters = isset($poll['voters']) ? (array)$poll['voters'] : array();
-	$key = pollVoterKey();
 	$error = '';
-
-	if (isset($voters[$key])) {
+	if (pollVotedOption($id, $board) >= 0) {
 		$error = __('You have already voted in this poll.');
 	} else if ($opt < 0 || $opt >= count($poll['options'])) {
 		$error = __('Choose an option first.');
 	} else {
-		$poll['votes'][$opt] = intval($poll['votes'][$opt]) + 1;
-		$voters[$key] = $opt;
-		$poll['voters'] = $voters;
-		pollWriteHandle($fh, $poll);
+		// the primary key (board, post, voter) makes the vote atomic: a second insert affects 0 rows
+		$added = storeExec("INSERT IGNORE INTO `" . storeTable('poll_votes') . "` (`board`, `post_id`, `voter`, `opt`) VALUES ('" . storeEsc($board) . "', " . $id . ", '" . storeEsc(pollVoterKey()) . "', " . $opt . ")");
+		if ($added < 1) {
+			$error = __('You have already voted in this poll.');
+		}
 	}
 
-	flock($fh, LOCK_UN);
-	fclose($fh);
-
-	$result = pollResultsData($id, $poll);
+	$result = pollResultsData($id, null, $board);
 	if ($error !== '') {
 		$result['error'] = $error;
 	}
@@ -261,7 +192,7 @@ function pollHTML($post) {
 	if (!pollsEnabled() || !isset($post['id'])) {
 		return '';
 	}
-	$poll = pollGet($post['id'], isset($post['board']) ? $post['board'] : null);
+	$poll = pollGet($post['id'], isset($post['board']) ? $post['board'] : null, false);
 	if (empty($poll)) {
 		return '';
 	}
