@@ -1,0 +1,97 @@
+/* THIS CSS IS A Loved on pile of Sparkles BY SHIERU-SAMA ^_~ */
+
+body {
+    background: #C5AD99;
+    background-image: ../css/ba.gif
+    color: #000000;
+    font-family: MS PGothic;
+    padding: 8px;
+}
+a:hover {
+    color: #f00;
+}
+.logo {
+    font-size: 16px;
+    font-weight: bolder;
+    margin-top: 0px;
+    clear: both;
+    text-align: center;
+}
+.postform {
+    background: #CCFFCC;
+    border: 1px inset white;
+    padding: 7px;
+    margin: 5px auto !important;
+    width: 100%;
+    clear: both;
+}
+#postform {
+    background: #CCFFCC;
+    border: 1px outset white;
+    padding: 7px 14px;
+    margin-left: 2.5%;
+    margin-right: 2.5%;
+    clear: both;
+}
+.postblock {
+    width: 70px
+}
+.rules ul {
+    list-style: none;
+}
+.adminbar {
+    font-weight: bolder;
+    font-size: 16px;
+}
+#posts {
+    padding: 7px;
+    border: 1px inset white;
+    background: #EFEFEF;
+    margin: 7px;
+}
+.reply {
+    padding: 1em;
+    background: #EFEFEF;
+}
+.postername {
+    color: green;
+    font-weight: bold;
+}
+.unkfunc {
+    color: green;
+}
+#delform {
+    margin-left: 2.5%;
+    margin-right: 2.5%;
+    position: relative;
+    background: #EFEFEF;
+    border: 1px outset white;
+    padding: 7px;
+    margin-bottom: 2em;
+    clear: both;
+}
+body > table {
+    border: none;
+}
+body > table td {
+    border: none;
+    font-weight: bolder;
+}
+.userdelete td {
+    position: absolute;
+    right: 1px;
+    bottom: 0;
+    font-weight: bolder;
+}
+.footer {
+    text-align: left;
+    font-weight: bolder;
+    font-size: 16px;
+}
+.filetitle {
+    font-weight: bold;
+}
+.reflink a {
+    font-weight: bold;
+}
+

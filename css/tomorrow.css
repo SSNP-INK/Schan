@@ -1,0 +1,369 @@
+/* This theme was created by moth for 403chan.org */
+/* Feel free to steal this, you cunt */
+
+body {
+    background: #1d1f21 none;
+    color: #c5c8c6;
+    font-family: arial, helvetica, sans-serif;
+    font-size: 10pt;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 5px;
+    padding-top: 0;
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+a {
+    color: #5F89AC;
+}   
+
+a:hover {
+    color: #81a2be;
+}
+
+.linx{
+    font-size: 9pt;
+    color: #c5c8c6;
+}
+
+.linx a{
+    color: #5F89AC;
+    text-decoration: none !important;
+    padding: 1px;
+}
+
+.linx a:hover{
+    color: #81a2be;
+}
+
+.adminbar{
+    font-size: 9pt;
+    color: #c5c8c6;
+}
+
+.adminbar a{
+    color: #5F89AC;
+    text-decoration: none !important;
+    padding: 1px;
+}
+
+.adminbar a:hover{
+    color: #81a2be;
+}
+
+.logo{
+    font-family: Tahoma, sans-serif;
+    font-size: 28px;
+    font-weight: bold;
+    letter-spacing: -2px;
+    margin-top: 0px;
+    color: #c5c8c6;
+	text-align: center;
+	clear: both;
+}
+
+#rotating-banner{
+    border: 1px solid #000;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid #282a2e;
+    height: 0;
+}
+
+.postblock {
+    background-color: #282a2e;
+    color: #c5c8c6;
+    font-size: 10pt;
+    border: 1px solid #111;
+    font-weight: bold;
+}
+
+.reply div[id^="thumbfile"] img.thumb {
+  max-width: 125px !important;
+  max-height: 125px !important;
+  width: auto;
+  height: auto;
+}
+
+.reply div[id^="expand"] img,
+div[id^="file"] img {
+  width: auto !important;
+  height: auto !important;
+  object-fit: unset !important;
+}
+
+.postform input[type="text"]{
+    margin: 0px;
+    margin-right: 2px;
+    padding: 2px 4px 3px 4px;
+    border: 1px solid #000;
+    background-color: #282a2e;
+    color: #c5c8c6;
+    font-family: arial, helvetica, sans-serif;
+    font-size: 10pt;
+}
+
+.postform input[type="password"]{
+    margin: 0px;
+    margin-right: 2px;
+    padding: 2px 4px 3px 4px;
+    border: 1px solid #000;
+    background-color: #282a2e;
+    color: #c5c8c6;
+    font-family: arial, helvetica, sans-serif;
+    font-size: 10pt;
+}
+
+.userdelete input[type="password"]{
+    margin: 0px;
+    margin-right: 2px;
+    padding: 2px 4px 3px 4px;
+    border: 1px solid #000;
+    background-color: #282a2e;
+    color: #c5c8c6;
+    font-family: arial, helvetica, sans-serif;
+    font-size: 10pt;
+}
+
+select {
+    border: 1px solid #575a60;
+    background-color: #282a2e;
+    color: #c5c8c6;
+}
+
+textarea{
+    border: 1px solid #000;
+    background-color: #282a2e;
+    color: #c5c8c6;
+}
+
+input[type="checkbox"], input[type="submit"], input[type="file"], button {
+    filter: brightness(80%);
+}
+
+.filetitle {
+    font-weight: bold;
+    font-size: 1em;
+    color: #b294bb;
+}
+
+.postername{
+    color: #c5c8c6;
+    font-weight: bold;
+}
+
+.postertrip{
+    color: #c5c8c6;
+}
+
+.reply{
+    background-color: #282a2e;
+    border: 1px solid #282a2e;
+    display: table;
+    padding: 2px;
+}
+
+.reflink a:hover{
+    color: #5F89AC;
+}
+
+.reflink + a {
+  text-decoration: none;
+}
+
+.footer{
+    font-family: arial, helvetica, sans-serif;
+}
+
+.catalogpost{
+    margin: 10px;
+}
+
+#posts .catalogpost {
+  display: inline-block;
+  vertical-align: top;
+}
+
+#posts:has(.catalogpost) {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.catalogpost b{
+    font-size: 11px;
+}
+
+.catalogpost b::before {
+  content: "R: ";
+  font-weight: normal;
+}
+
+.catalogpost img{
+  max-width: 150px;
+  max-height: 150px;
+  height: auto;
+  width: auto;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.25);
+}
+
+.rules{
+    font-size: 11px;
+}
+
+.doubledash {
+    position: relative;
+    color: transparent;
+}
+
+.unkfunc{
+    color: #789922;
+}
+
+.omittedposts{
+    color: #707070;
+}
+
+.replymode{
+    display: none;
+}
+
+#newreplies {
+  height: 1px;
+  background-color: red;
+  border: none;
+  margin: 0.2em 0;
+  overflow: hidden;
+  text-indent: -9999px;
+}
+
+td.doubledash {
+  font-size: 0;
+  position: relative;
+}
+
+td.doubledash::before {
+  content: ">>";
+  color: #c5c8c6;
+  font-size: 10pt;
+}
+
+span[style="color: red ;"]::after {
+  content: "";
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background-image: url('https://web.archive.org/web/20250809221002im_/https://403chan.org/st/403admin.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  margin-left: 4px;
+}
+
+label a{
+    text-decoration: none;
+    cursor: default;
+}
+
+label span:not(.filetitle):not(.postertrip) {
+  font-weight: bold;
+}
+
+span[style="color: red ;"] {
+  color: #81a2be !important;
+}
+
+label:has(span[style*="color: red"]) .postername {
+    color: #81a2be !important;
+}
+
+/* Replace Icons */
+
+.reflink:has(img[alt="Stickied"]) img[alt="Stickied"],
+.reflink:has(img[alt="Locked"]) img[alt="Locked"] {
+  display: none;
+}
+
+.reflink:has(img[alt="Stickied"]):not(:has(img[alt="Locked"]))::after {
+  content: "";
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background-repeat: no-repeat;
+  background-size: contain;
+  margin-left: 4px;
+  background-image: url("https://web.archive.org/web/20250809221002im_/https://files.catbox.moe/jp5sya.png");
+  background-position: center;
+}
+
+.reflink:has(img[alt="Locked"]):not(:has(img[alt="Stickied"]))::after {
+  content: "";
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background-repeat: no-repeat;
+  background-size: contain;
+  margin-left: 4px;
+  background-image: url("https://web.archive.org/web/20250809221002im_/https://files.catbox.moe/6omgbb.png");
+  background-position: center;
+}
+
+.reflink:has(img[alt="Stickied"]):has(img[alt="Locked"])::after {
+  content: "";
+  display: inline-block;
+  width: 35px;
+  height: 16px;
+  background-repeat: no-repeat;
+  background-size: 16px 16px;
+  margin-left: 4px;
+  background-image: url("https://web.archive.org/web/20250809221002im_/https://files.catbox.moe/jp5sya.png"), url("https://web.archive.org/web/20250809221002im_/https://files.catbox.moe/6omgbb.png");
+  background-position: left center, right center;
+}
+
+/* Pagelist */
+
+table[style*="inline-block"] {
+  font-size: 13px !important;
+  margin: 0;
+  float: left;
+  border-collapse: collapse;
+  background: #282a2e;
+  border: 1px solid #111;
+  color: #81a2be !important;
+}
+
+table[style*="inline-block"] td {
+  padding: 3px 7px;
+  border: none;
+  background: #282a2e;
+  color: #c5c8c6;
+}
+
+table[style*="inline-block"] a {
+    text-decoration: none;
+}
+
+input[type="submit"][value="Catalog"] {
+  all: unset;
+  color: #81a2be;
+  cursor: pointer;
+  padding: 3px;
+  font: inherit;
+}
+/*
+     FILE ARCHIVED ON 22:10:02 Aug 09, 2025 AND RETRIEVED FROM THE
+     INTERNET ARCHIVE ON 19:13:17 Oct 02, 2026.
+     JAVASCRIPT APPENDED BY WAYBACK MACHINE, COPYRIGHT INTERNET ARCHIVE.
+
+     ALL OTHER CONTENT MAY ALSO BE PROTECTED BY COPYRIGHT (17 U.S.C.
+     SECTION 108(a)(3)).
+*/
+/*
+playback timings (ms):
+  capture_cache.get: 0.593
+  load_resource: 395.641 (2)
+  PetaboxLoader3.resolve: 151.636 (2)
+  PetaboxLoader3.datanode: 241.103 (2)
+*/
